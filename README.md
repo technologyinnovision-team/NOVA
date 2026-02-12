@@ -114,7 +114,7 @@ NOVA integrates AI-driven features such as:
 ### 1️⃣ Clone the Repository
 
 ```bash
-git clone https://github.com/your-username/nova.git
+git clone https://github.com/technologyinnovision-team/nova.git
 cd nova
 ```
 
