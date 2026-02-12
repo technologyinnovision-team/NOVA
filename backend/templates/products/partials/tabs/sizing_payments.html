@@ -1,0 +1,64 @@
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+    <!-- Payment Options Section -->
+    <div class="space-y-6">
+        <h4
+            class="text-lg font-medium text-gray-900 dark:text-white border-b border-gray-100 dark:border-gray-700 pb-2">
+            Payment Logic</h4>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Payment Priority /
+                Options</label>
+            <select name="payment_option" id="payment_option_select"
+                class="custom-input w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none">
+                <option value="cod_available" {% if product and product.payment_option=='cod_available' %}selected{%
+                    endif %}>Standard (COD & Online Payment)</option>
+                <option value="prepaid_only" {% if product and product.payment_option=='prepaid_only' %}selected{% endif
+                    %}>Full Payment Only (No COD)</option>
+                <option value="partial_advance" {% if product and product.payment_option=='partial_advance' %}selected{%
+                    endif %}>Partial Advance Payment Required</option>
+            </select>
+            <p class="mt-1 text-xs text-gray-500">Select the payment policy for this specific product.</p>
+        </div>
+
+        <div id="advance_payment_field" class="hidden">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Advance Amount Required
+                ($)</label>
+            <input type="number" step="0.01" name="advance_payment_amount"
+                value="{{ product.advance_payment_amount if product and product.advance_payment_amount else '' }}"
+                placeholder="e.g. 500"
+                class="custom-input w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none">
+            <p class="mt-1 text-xs text-gray-500">The customer must pay this amount upfront to place the order.</p>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <input type="checkbox" id="disable_cod" name="disable_cod" {% if product and product.disable_cod %}checked{%
+                endif %} class="w-4 h-4 text-primary-gold border-gray-300 rounded focus:ring-primary-gold">
+            <label for="disable_cod" class="text-sm font-medium text-gray-700 dark:text-gray-300">Disable COD
+                functionality completely</label>
+        </div>
+    </div>
+
+    <!-- Sizing Customization Section -->
+    <div class="space-y-6">
+        <h4
+            class="text-lg font-medium text-gray-900 dark:text-white border-b border-gray-100 dark:border-gray-700 pb-2">
+            Sizing Customization</h4>
+
+        <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+            <div class="flex items-start gap-3">
+                <input type="checkbox" id="sizing_consultation_required" name="sizing_consultation_required" {% if
+                    product and product.sizing_consultation_required %}checked{% endif %}
+                    class="mt-1 w-4 h-4 text-primary-gold border-gray-300 rounded focus:ring-primary-gold">
+                <div>
+                    <label for="sizing_consultation_required"
+                        class="text-sm font-medium text-gray-900 dark:text-white">Requires Custom Sizing / Team
+                        Consultation</label>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                        If checked, a message will be displayed on the frontend informing the customer that our team
+                        will contact them for sizing guidance and measurements.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

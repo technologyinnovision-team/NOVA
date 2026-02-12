@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+
+{% block title %}Media Library{% endblock %}
+
+{% block content %}
+<form id="bulk-form" method="POST">
+    <div
+        class="flex flex-col sm:flex-row justify-between items-center pb-4 mb-4 border-b border-gray-200 dark:border-gray-700 gap-4">
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Media Library</h1>
+
+        <div class="flex flex-wrap items-center gap-2">
+            <!-- Filter Group -->
+            <div class="inline-flex rounded-lg shadow-sm" role="group">
+                <a href="{{ url_for('media.list_media', status='all') }}" class="px-4 py-2 text-sm font-medium border rounded-l-lg
+                    {% if current_status == 'all' %}
+                        bg-gold text-white border-gold
+                    {% else %}
+                        bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700
+                    {% endif %}">
+                    All
+                </a>
+                <a href="{{ url_for('media.list_media', status='used') }}" class="px-4 py-2 text-sm font-medium border-t border-b
+                    {% if current_status == 'used' %}
+                        bg-gold text-white border-gold
+                    {% else %}
+                        bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700
+                    {% endif %}">
+                    In Use
+                </a>
+                <a href="{{ url_for('media.list_media', status='unused') }}" class="px-4 py-2 text-sm font-medium border rounded-r-lg
+                    {% if current_status == 'unused' %}
+                        bg-gold text-white border-gold
+                    {% else %}
+                        bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700
+                    {% endif %}">
+                    Unused
+                </a>
+            </div>
+
+            <!-- Actions -->
+            <button type="button"
+                class="px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition-colors"
+                onclick="toggleSelectAll()">
+                Select All
+            </button>
+            <button type="button"
+                class="px-3 py-2 text-sm font-medium text-white bg-black hover:bg-gray-800 rounded-lg shadow-sm transition-colors"
+                onclick="openUploadModal()">
+                Upload New
+            </button>
+            <button type="submit" formaction="{{ url_for('media.convert_webp') }}"
+                class="px-3 py-2 text-sm font-medium text-green-600 bg-green-50 hover:bg-green-100 rounded-lg border border-green-200 transition-colors">
+                Convert WebP
+            </button>
+            <button type="submit" formaction="{{ url_for('media.bulk_delete') }}"
+                class="px-3 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg border border-red-200 transition-colors"
+                onclick="return confirm('Delete selected files? This cannot be undone.')">
+                Bulk Delete
+            </button>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+        {% for file in files %}
+        <div
+            class="group relative bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-md border border-gray-100 dark:border-gray-700 transition-all overflow-hidden">
+            <!-- Checkbox -->
+            <div class="absolute top-2 left-2 z-10">
+                <input type="checkbox" name="file_urls" value="{{ file.url }}"
+                    class="w-5 h-5 text-gold border-gray-300 rounded focus:ring-gold cursor-pointer shadow-sm">
+            </div>
+
+            <!-- Image Container -->
+            <div
+                class="aspect-square bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-2 relative overflow-hidden">
+                <img src="{{ file.url }}" alt="{{ file.name }}" loading="lazy"
+                    class="max-w-full max-h-full object-contain transition-transform duration-300 group-hover:scale-105">
+
+                <!-- Hover Overlay -->
+                {% if file.status != 'used' %}
+                <div
+                    class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                    <button type="submit" formaction="{{ url_for('media.delete_media') }}" name="file_url"
+                        value="{{ file.url }}"
+                        class="p-2 bg-red-500 text-white rounded-full hover:bg-red-600 shadow-lg transform translate-y-4 group-hover:translate-y-0 transition-all"
+                        onclick="return confirm('Delete this file?');" title="Delete">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                            </path>
+                        </svg>
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Details -->
+            <div class="p-3">
+                <div class="flex items-start justify-between gap-2 mb-1">
+                    <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate flex-1"
+                        title="{{ file.name }}">
+                        {{ file.name }}
+                    </h3>
+                </div>
+
+                <div class="flex items-center justify-between text-xs mt-2">
+                    <span class="text-gray-500 dark:text-gray-400">{{ (file.size / 1024)|round(1) }} KB</span>
+
+                    {% if file.status == 'used' %}
+                    <span
+                        class="px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 font-medium border border-green-200 dark:border-green-800">
+                        In Use
+                    </span>
+                    {% else %}
+                    <span
+                        class="px-2 py-0.5 rounded-full bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 font-medium border border-yellow-200 dark:border-yellow-800">
+                        Unused
+                    </span>
+                    {% endif %}
+                </div>
+
+                <div class="mt-1 text-xs text-gray-400 truncate">
+                    {{ file.folder }}
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="col-span-full py-12 text-center text-gray-500 dark:text-gray-400">
+            <svg class="w-12 h-12 mx-auto mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z">
+                </path>
+            </svg>
+            <p class="text-lg">No media files found</p>
+        </div>
+        {% endfor %}
+    </div>
+</form>
+
+<!-- Media Modal -->
+{% include "components/media_modal.html" %}
+
+<script src="{{ url_for('static', filename='js/media-modal.js') }}"></script>
+<script>
+    function toggleSelectAll() {
+        const checkboxes = document.querySelectorAll('input[name="file_urls"]');
+        const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+        checkboxes.forEach(cb => cb.checked = !allChecked);
+    }
+
+    function openUploadModal() {
+        MediaLibrary.open({
+            multiSelect: true, // Allow confirming uploads
+            onSelect: function (files) {
+                // When files are selected/uploaded in modal, refresh the page to show them
+                window.location.reload();
+            }
+        });
+        // Switch to upload tab by default
+        document.getElementById('tab-upload-btn').click();
+    }
+</script>
+
+
+{% if total_pages > 1 %}
+<div class="flex justify-center mt-8">
+    <nav class="flex items-center gap-1">
+        {% for p in range(1, total_pages + 1) %}
+        <a href="{{ url_for('media.list_media', page=p, status=current_status) }}" class="w-8 h-8 flex items-center justify-center rounded-lg text-sm font-medium transition-colors
+           {% if p == page %}
+               bg-gold text-white shadow-sm
+           {% else %}
+               bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700
+           {% endif %}">
+            {{ p }}
+        </a>
+        {% endfor %}
+    </nav>
+</div>
+{% endif %}
+{% endblock %}

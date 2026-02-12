@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Edit' if product else 'Create' }} Product - Admin Panel{% endblock %}
+
+{% block page_title %}{{ 'Edit' if product else 'Create' }} Product{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Premium aesthetics for the form */
+    :root {
+        --primary-gold: #d4af37;
+        --primary-gold-dim: #b5952f;
+    }
+
+    .tab-button {
+        position: relative;
+        transition: all 0.3s ease;
+    }
+
+    .tab-button::after {
+        content: '';
+        position: absolute;
+        bottom: -2px;
+        left: 0;
+        width: 0;
+        height: 2px;
+        background-color: var(--primary-gold);
+        transition: width 0.3s ease;
+    }
+
+    .tab-button.active {
+        color: var(--primary-gold);
+        font-weight: 600;
+    }
+
+    .tab-button.active::after {
+        width: 100%;
+    }
+
+    /* Custom Input Styles */
+    .custom-input {
+        transition: all 0.2s ease;
+    }
+
+    .custom-input:focus {
+        border-color: var(--primary-gold);
+        box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.1);
+    }
+
+    /* Quill Editor Overrides */
+    .ql-toolbar.ql-snow {
+        border-color: #e5e7eb;
+        border-top-left-radius: 0.5rem;
+        border-top-right-radius: 0.5rem;
+    }
+
+    .ql-container.ql-snow {
+        border-color: #e5e7eb;
+        border-bottom-left-radius: 0.5rem;
+        border-bottom-right-radius: 0.5rem;
+        min-height: 250px;
+    }
+
+    .dark .ql-toolbar.ql-snow,
+    .dark .ql-container.ql-snow {
+        border-color: #374151;
+        background-color: #1f2937;
+        color: #fff;
+    }
+</style>
+<!-- Quill Editor -->
+<link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+<script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-full mx-auto pb-12">
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white">{{ 'Edit' if product else 'Create New' }}
+                Product</h2>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Manage your product details, gallery, and
+                attributes.</p>
+        </div>
+        <div class="flex gap-3">
+            <a href="{{ url_for('products.list') }}"
+                class="px-5 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">Cancel</a>
+            <button type="button" onclick="submitProductForm(this)"
+                class="px-5 py-2.5 rounded-lg bg-black dark:bg-white text-white dark:text-black font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-lg flex items-center gap-2">
+                <span id="btn-text">{{ 'Update Product' if product else 'Publish Product' }}</span>
+                <svg id="btn-spinner" class="animate-spin h-4 w-4 text-white dark:text-black hidden"
+                    xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                    </path>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <form method="POST"
+        action="{{ url_for('products.edit', id=product.id) if product else url_for('products.create') }}"
+        enctype="multipart/form-data" id="product-form" class="block">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+            <!-- Left Column: Main Content -->
+            <div class="lg:col-span-8 space-y-8">
+                {% include "products/partials/basic_info.html" %}
+                {% include "products/partials/products_data.html" %}
+            </div>
+
+            <!-- Right Column: Sidebar -->
+            <div class="lg:col-span-4 space-y-8">
+                {% include "products/partials/publishing.html" %}
+                {% include "products/partials/organization.html" %}
+                {% include "products/partials/media_gallery.html" %}
+            </div>
+
+        </div>
+    </form>
+
+    <!-- AI Generation Modal Include -->
+    {% include "products/partials/ai_generation_modal.html" %}
+
+    <!-- Floating AI Button -->
+    <button type="button" onclick="AIModal.open()"
+        class="fixed bottom-8 right-8 z-40 p-4 rounded-full bg-black dark:bg-white text-white dark:text-black shadow-2xl hover:scale-110 transition-transform duration-200 group flex items-center gap-2 border border-gray-800 dark:border-gray-200"
+        title="Generate Content with AI">
+        <svg class="h-6 w-6 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+        </svg>
+        <span
+            class="max-w-0 overflow-hidden group-hover:max-w-xs transition-all duration-300 ease-in-out font-bold whitespace-nowrap">AI
+            Assistant</span>
+    </button>
+</div>
+
+{% include "products/partials/scripts.html" %}
+
+{% endblock %}

@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+
+{% block title %}{% if coupon %}Edit{% else %}Create{% endif %} Coupon - Admin Panel{% endblock %}
+
+{% block page_title %}{% if coupon %}Edit{% else %}Create{% endif %} Coupon{% endblock %}
+
+{% block content %}
+<div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm dark:shadow-none transition-theme">
+    <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-800">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">{% if coupon %}Edit{% else %}Create{% endif %} Coupon</h2>
+    </div>
+    
+    <form method="POST" class="p-6 space-y-6">
+        <!-- Basic Information -->
+        <div class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="code" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Coupon Code <span class="text-red-400">*</span></label>
+                    <input type="text" id="code" name="code" value="{{ coupon.code if coupon else '' }}" required class="w-full px-4 py-2.5 bg-white dark:bg-black border border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-theme uppercase">
+                    <p class="text-xs text-gray-500 dark:text-gray-500 mt-1">Code will be converted to uppercase</p>
+                </div>
+                
+                <div>
+                    <label for="discount_type" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Discount Type <span class="text-red-400">*</span></label>
+                    <select id="discount_type" name="discount_type" required class="w-full px-4 py-2.5 bg-white dark:bg-black border border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-theme" onchange="updateDiscountFields()">
+                        <option value="percentage" {% if coupon and coupon.discount_type == 'percentage' %}selected{% endif %}>Percentage</option>
+                        <option value="fixed" {% if coupon and coupon.discount_type == 'fixed' %}selected{% endif %}>Fixed Amount</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div>
+                <label for="discount_value" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Discount Value <span class="text-red-400">*</span></label>
+                <div class="relative">
+                    <span id="discount_prefix" class="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400">{% if coupon and coupon.discount_type == 'fixed' or not coupon %}${% else %}%{% endif %}</span>
+                    <input type="number" id="discount_value" name="discount_value" value="{{ coupon.discount_value if coupon else '' }}" step="0.01" min="0" required class="w-full {% if coupon and coupon.discount_type == 'fixed' or not coupon %}pl-8{% else %}pl-12{% endif %} pr-4 py-2.5 bg-white dark:bg-black border border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-theme">
+                </div>
+            </div>
+        </div>
+        
+        <!-- Restrictions -->
+        <div class="border-t border-gray-200 dark:border-gray-800 pt-6 space-y-4">
+            <h3 class="text-base font-semibold text-gray-900 dark:text-white">Restrictions</h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="minimum_order" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Minimum Order Amount</label>
+                    <div class="relative">
+                        <span class="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400">$</span>
+                        <input type="number" id="minimum_order" name="minimum_order" value="{{ coupon.minimum_order if coupon and coupon.minimum_order else '' }}" step="0.01" min="0" class="w-full pl-8 pr-4 py-2.5 bg-white dark:bg-black border border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-theme">
+                    </div>
+                    <p class="text-xs text-gray-500 dark:text-gray-500 mt-1">Leave empty for no minimum</p>
+                </div>
+                
+                <div id="max_discount_field">
+                    <label for="maximum_discount" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Maximum Discount</label>
+                    <div class="relative">
+                        <span class="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400">$</span>
+                        <input type="number" id="maximum_discount" name="maximum_discount" value="{{ coupon.maximum_discount if coupon and coupon.maximum_discount else '' }}" step="0.01" min="0" class="w-full pl-8 pr-4 py-2.5 bg-white dark:bg-black border border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-theme">
+                    </div>
+                    <p class="text-xs text-gray-500 dark:text-gray-500 mt-1">For percentage discounts only</p>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="usage_limit" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Usage Limit</label>
+                    <input type="number" id="usage_limit" name="usage_limit" value="{{ coupon.usage_limit if coupon and coupon.usage_limit else '' }}" min="1" class="w-full px-4 py-2.5 bg-white dark:bg-black border border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-theme">
+                    <p class="text-xs text-gray-500 dark:text-gray-500 mt-1">Leave empty for unlimited</p>
+                </div>
+                
+                <div>
+                    <label for="expires_at" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Expires At</label>
+                    <input type="datetime-local" id="expires_at" name="expires_at" value="{% if coupon and coupon.expires_at %}{{ coupon.expires_at.strftime('%Y-%m-%dT%H:%M') }}{% endif %}" class="w-full px-4 py-2.5 bg-white dark:bg-black border border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-theme">
+                    <p class="text-xs text-gray-500 dark:text-gray-500 mt-1">Leave empty for no expiration</p>
+                </div>
+            </div>
+            
+            <div>
+                <label for="product_ids" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Restrict to Products (Product IDs, comma-separated)</label>
+                <input type="text" id="product_ids" name="product_ids" value="{% if coupon and coupon.product_ids %}{{ coupon.product_ids|join(', ') }}{% endif %}" placeholder="1, 2, 3" class="w-full px-4 py-2.5 bg-white dark:bg-black border border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-theme">
+                <p class="text-xs text-gray-500 dark:text-gray-500 mt-1">Leave empty to allow all products</p>
+            </div>
+            
+            <div>
+                <label for="category_ids" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Restrict to Categories (Category IDs, comma-separated)</label>
+                <input type="text" id="category_ids" name="category_ids" value="{% if coupon and coupon.category_ids %}{{ coupon.category_ids|join(', ') }}{% endif %}" placeholder="1, 2, 3" class="w-full px-4 py-2.5 bg-white dark:bg-black border border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-theme">
+                <p class="text-xs text-gray-500 dark:text-gray-500 mt-1">Leave empty to allow all categories</p>
+            </div>
+        </div>
+        
+        <!-- Options -->
+        <div class="border-t border-gray-200 dark:border-gray-800 pt-6 space-y-4">
+            <h3 class="text-base font-semibold text-gray-900 dark:text-white">Options</h3>
+            
+            <div class="flex items-center justify-between">
+                <div>
+                    <label for="first_time_only" class="block text-sm font-medium text-gray-700 dark:text-gray-300">First-Time Customers Only</label>
+                    <p class="text-xs text-gray-500 dark:text-gray-500">Restrict to first-time customers</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" name="first_time_only" id="first_time_only" {% if coupon and coupon.first_time_only %}checked{% endif %} class="sr-only peer">
+                    <div class="w-11 h-6 bg-gray-300 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-gold rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-pink"></div>
+                </label>
+            </div>
+            
+            <div class="flex items-center justify-between">
+                <div>
+                    <label for="enabled" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Enabled</label>
+                    <p class="text-xs text-gray-500 dark:text-gray-500">Enable or disable this coupon</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" name="enabled" id="enabled" {% if not coupon or coupon.enabled %}checked{% endif %} class="sr-only peer">
+                    <div class="w-11 h-6 bg-gray-300 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-gold rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-pink"></div>
+                </label>
+            </div>
+        </div>
+        
+        <div class="pt-6 border-t border-gray-200 dark:border-gray-800 flex justify-end gap-3">
+            <a href="{{ url_for('coupons.list') }}" class="px-6 py-2.5 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-medium transition-colors">
+                Cancel
+            </a>
+            <button type="submit" class="px-6 py-2.5 bg-pink hover:bg-pink-dark text-white rounded-lg font-medium transition-colors">
+                {% if coupon %}Update{% else %}Create{% endif %} Coupon
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+function updateDiscountFields() {
+    const type = document.getElementById('discount_type').value;
+    const prefix = document.getElementById('discount_prefix');
+    const discountValue = document.getElementById('discount_value');
+    const maxDiscountField = document.getElementById('max_discount_field');
+    
+    if (type === 'percentage') {
+        prefix.textContent = '%';
+        discountValue.className = discountValue.className.replace('pl-8', 'pl-12');
+        maxDiscountField.style.display = 'block';
+    } else {
+        prefix.textContent = '$';
+        discountValue.className = discountValue.className.replace('pl-12', 'pl-8');
+        maxDiscountField.style.display = 'none';
+    }
+}
+</script>
+{% endblock %}
+

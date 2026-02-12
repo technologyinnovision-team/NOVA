@@ -1,0 +1,649 @@
+{% extends 'base.html' %}
+
+{% block title %}File Manager{% endblock %}
+
+{% block page_title %}File Manager (/build){% endblock %}
+
+{% block content %}
+<div class="bg-white dark:bg-[#1f1f1f] rounded-lg shadow-sm border border-gray-200 dark:border-gray-800 p-6">
+
+    <!-- Toolbar -->
+    <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+        <!-- Breadcrumbs -->
+        <div class="flex items-center gap-2 overflow-x-auto w-full sm:w-auto" id="breadcrumbs">
+            <button onclick="loadPath('')"
+                class="text-gray-500 hover:text-gold transition-colors flex items-center gap-1">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6">
+                    </path>
+                </svg>
+                root
+            </button>
+            <!-- Dynamic breadcrumbs will be injected here -->
+        </div>
+
+        <!-- Actions -->
+        <div class="flex items-center gap-3 flex-wrap justify-end">
+            <!-- Multi-select Actions (Hidden by default) -->
+            <div id="multiSelectActions"
+                class="hidden flex items-center gap-2 mr-2 border-r border-gray-200 dark:border-gray-700 pr-2">
+                <span id="selectedCount" class="text-xs text-gray-500 font-medium">0 selected</span>
+                <button onclick="compressSelected()"
+                    class="p-2 text-gray-500 hover:text-gold hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                    title="Compress Selected">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M20 12H4M4 12L12 4M4 12L12 20"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <button onclick="refreshCurrentDir()"
+                class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 transition-colors"
+                title="Refresh">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                    </path>
+                </svg>
+            </button>
+
+            <button onclick="showCreateFolderModal()"
+                class="flex items-center gap-2 px-3 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg text-sm font-medium transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path>
+                </svg>
+                Folder
+            </button>
+
+            <button onclick="showCreateFileModal()"
+                class="flex items-center gap-2 px-3 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg text-sm font-medium transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                    </path>
+                </svg>
+                File
+            </button>
+
+            <button onclick="document.getElementById('fileInput').click()"
+                class="flex items-center gap-2 px-4 py-2 bg-gold hover:bg-gold-light text-white rounded-lg text-sm font-medium transition-colors shadow-lg shadow-gold/20">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
+                </svg>
+                Upload
+            </button>
+            <input type="file" id="fileInput" multiple class="hidden" onchange="handleFileSelect(event)">
+        </div>
+    </div>
+
+    <!-- Drop Zone -->
+    <div id="dropZone"
+        class="relative border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl min-h-[400px] transition-colors">
+        <div id="loadingIndicator"
+            class="hidden absolute inset-0 bg-white/80 dark:bg-[#1f1f1f]/80 z-20 flex items-center justify-center">
+            <svg class="animate-spin h-8 w-8 text-gold" xmlns="http://www.w3.org/2000/svg" fill="none"
+                viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                </path>
+            </svg>
+        </div>
+
+        <!-- File Grid -->
+        <div id="fileGrid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 p-4">
+            <!-- Files will be injected here -->
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="hidden absolute inset-0 flex flex-col items-center justify-center text-gray-400">
+            <svg class="w-16 h-16 mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                    d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4">
+                </path>
+            </svg>
+            <p class="text-lg font-medium">No files found</p>
+            <p class="text-sm">Drag and drop files here to upload</p>
+        </div>
+    </div>
+</div>
+
+<!-- Modals -->
+
+<!-- Create Folder Modal -->
+<div id="createFolderModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+    <div
+        class="bg-white dark:bg-[#1f1f1f] rounded-lg p-6 w-full max-w-sm shadow-xl border border-gray-200 dark:border-gray-800">
+        <h3 class="text-lg font-bold mb-4 dark:text-white">New Folder</h3>
+        <input type="text" id="newFolderName"
+            class="w-full px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-700 dark:text-white mb-4 focus:ring-2 focus:ring-gold focus:border-transparent outline-none"
+            placeholder="Folder Name">
+        <div class="flex justify-end gap-3">
+            <button onclick="closeModal('createFolderModal')"
+                class="px-4 py-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">Cancel</button>
+            <button onclick="createFolder()"
+                class="px-4 py-2 bg-gold hover:bg-gold-light text-white rounded-lg">Create</button>
+        </div>
+    </div>
+</div>
+
+<!-- Create File Modal -->
+<div id="createFileModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+    <div
+        class="bg-white dark:bg-[#1f1f1f] rounded-lg p-6 w-full max-w-sm shadow-xl border border-gray-200 dark:border-gray-800">
+        <h3 class="text-lg font-bold mb-4 dark:text-white">New File</h3>
+        <input type="text" id="newFileName"
+            class="w-full px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-700 dark:text-white mb-4 focus:ring-2 focus:ring-gold focus:border-transparent outline-none"
+            placeholder="Filename (e.g. style.css)">
+        <div class="flex justify-end gap-3">
+            <button onclick="closeModal('createFileModal')"
+                class="px-4 py-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">Cancel</button>
+            <button onclick="createFile()"
+                class="px-4 py-2 bg-gold hover:bg-gold-light text-white rounded-lg">Create</button>
+        </div>
+    </div>
+</div>
+
+<!-- Editor Modal -->
+<div id="editorModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+    <div
+        class="bg-white dark:bg-[#1f1f1f] rounded-lg w-full max-w-4xl h-[90vh] flex flex-col shadow-xl border border-gray-200 dark:border-gray-800">
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+            <h3 class="text-lg font-bold dark:text-white" id="editorTitle">Edit File</h3>
+            <button onclick="closeModal('editorModal')"
+                class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                    </path>
+                </svg>
+            </button>
+        </div>
+        <div class="flex-1 p-0 overflow-hidden relative">
+            <textarea id="fileEditor"
+                class="w-full h-full p-4 font-mono text-sm bg-gray-50 dark:bg-[#1a1a1a] text-gray-800 dark:text-gray-300 resize-none outline-none border-none"></textarea>
+        </div>
+        <div class="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
+            <button onclick="closeModal('editorModal')"
+                class="px-4 py-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">Cancel</button>
+            <button onclick="saveFileContent()" class="px-4 py-2 bg-gold hover:bg-gold-light text-white rounded-lg">Save
+                Changes</button>
+        </div>
+    </div>
+</div>
+
+<!-- Compress Modal -->
+<div id="compressModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+    <div
+        class="bg-white dark:bg-[#1f1f1f] rounded-lg p-6 w-full max-w-sm shadow-xl border border-gray-200 dark:border-gray-800">
+        <h3 class="text-lg font-bold mb-4 dark:text-white">Compress Selection</h3>
+        <p class="text-sm text-gray-500 mb-2">Archive Name:</p>
+        <input type="text" id="archiveName"
+            class="w-full px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-700 dark:text-white mb-4 focus:ring-2 focus:ring-gold focus:border-transparent outline-none"
+            placeholder="archive.zip">
+        <div class="flex justify-end gap-3">
+            <button onclick="closeModal('compressModal')"
+                class="px-4 py-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">Cancel</button>
+            <button onclick="performCompression()"
+                class="px-4 py-2 bg-gold hover:bg-gold-light text-white rounded-lg">Compress</button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let currentPath = '';
+    let selectedItems = new Set();
+    let currentEditingFile = null;
+
+    const dropZone = document.getElementById('dropZone');
+    const fileGrid = document.getElementById('fileGrid');
+    const emptyState = document.getElementById('emptyState');
+    const loadingIndicator = document.getElementById('loadingIndicator');
+
+    // Initialize
+    loadPath('');
+
+    function loadPath(path) {
+        currentPath = path;
+        selectedItems.clear();
+        updateSelectionUI();
+        updateBreadcrumbs(path);
+
+        loadingIndicator.classList.remove('hidden');
+
+        fetch(`{{ url_for('file_manager.list_files') }}?path=${encodeURIComponent(path)}`)
+            .then(r => r.json())
+            .then(data => {
+                if (data.error) throw new Error(data.error);
+                renderFiles(data.items);
+            })
+            .catch(err => {
+                alert('Error loading files: ' + err.message);
+                console.error(err);
+            })
+            .finally(() => {
+                loadingIndicator.classList.add('hidden');
+            });
+    }
+
+    function refreshCurrentDir() {
+        loadPath(currentPath);
+    }
+
+    function updateBreadcrumbs(path) {
+        const container = document.getElementById('breadcrumbs');
+        let html = '<button onclick="loadPath(\'\')" class="text-gray-500 hover:text-gold transition-colors flex items-center gap-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>root</button>';
+
+        if (path) {
+            const parts = path.split('/');
+            let builtPath = '';
+
+            parts.forEach((part, index) => {
+                builtPath += (index > 0 ? '/' : '') + part;
+                html += `
+                    <span class="text-gray-400">/</span>
+                    <button onclick="loadPath('${builtPath}')" class="font-medium ${index === parts.length - 1 ? 'text-gray-900 dark:text-white cursor-default' : 'text-gray-500 hover:text-gold'}">
+                        ${part}
+                    </button>
+                `;
+            });
+        }
+
+        container.innerHTML = html;
+    }
+
+    function renderFiles(items) {
+        fileGrid.innerHTML = '';
+
+        if (!items || items.length === 0) {
+            emptyState.classList.remove('hidden');
+            return;
+        }
+
+        emptyState.classList.add('hidden');
+
+        items.forEach(item => {
+            const el = document.createElement('div');
+            el.className = 'group relative flex flex-col items-center p-4 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors border border-transparent hover:border-gray-200 dark:hover:border-gray-700 cursor-pointer select-none';
+
+            // Selection Checkbox (Visible on hover or selected)
+            const isSelected = selectedItems.has(item.name);
+            if (isSelected) el.classList.add('bg-blue-50', 'dark:bg-blue-900/20', 'border-blue-200', 'dark:border-blue-800');
+
+            let icon = '';
+            if (item.is_dir) {
+                icon = `<svg class="w-12 h-12 text-gold mb-2" fill="currentColor" viewBox="0 0 20 20"><path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"></path></svg>`;
+            } else {
+                icon = getFileIcon(item.name);
+            }
+
+            // Click Handlers
+            el.onclick = (e) => {
+                // If checkbox clicked, toggle select
+                if (e.target.closest('.checkbox-area')) {
+                    toggleSelection(item.name);
+                    return;
+                }
+                // If actions clicked, do nothing here
+                if (e.target.closest('.actions')) return;
+
+                // Normal click
+                if (item.is_dir) {
+                    loadPath(item.path);
+                } else {
+                    // Open Editor if text file
+                    if (isEditable(item.name)) {
+                        openEditor(item.path);
+                    } else {
+                        // Default open
+                        window.open(`{{ url_for('file_manager.download_file') }}?path=${encodeURIComponent(item.path)}`, '_blank');
+                    }
+                }
+            };
+
+            const checkboxHtml = `
+                <div class="checkbox-area absolute top-2 left-2 p-1 z-10 opacity-0 group-hover:opacity-100 ${isSelected ? 'opacity-100' : ''}">
+                    <input type="checkbox" ${isSelected ? 'checked' : ''} class="w-4 h-4 rounded border-gray-300 text-gold focus:ring-gold" onchange="toggleSelection('${item.name}')">
+                </div>
+            `;
+
+
+            // Context Actions
+            let extraActions = '';
+            if (!item.is_dir) {
+                if (item.name.endsWith('.zip')) {
+                    extraActions += `
+                    <button onclick="extractFile('${item.path}')" class="p-1.5 text-gray-500 hover:text-gold hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md" title="Extract Here">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+                    </button>`;
+                } else if (isEditable(item.name)) {
+                    extraActions += `
+                    <button onclick="openEditor('${item.path}')" class="p-1.5 text-gray-500 hover:text-gold hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md" title="Edit">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                    </button>`;
+                }
+
+                extraActions += `
+                <button onclick="downloadItem('${item.path}')" class="p-1.5 text-gray-500 hover:text-gold hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md" title="Download">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                </button>`;
+            }
+
+            el.innerHTML = `
+                ${checkboxHtml}
+                ${icon}
+                <span class="text-sm font-medium text-gray-700 dark:text-gray-300 text-center truncate w-full" title="${item.name}">${item.name}</span>
+                <span class="text-xs text-gray-400 mt-1">${formatSize(item.size)}</span>
+                
+                <!-- Hover Actions -->
+                <div class="actions absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 bg-white dark:bg-[#1f1f1f] shadow-sm rounded-md border border-gray-200 dark:border-gray-700">
+                    <button onclick="deleteItem('${item.path}', '${item.is_dir ? 'folder' : 'file'}')" class="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md" title="Delete">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    </button>
+                    ${extraActions}
+                </div>
+            `;
+
+            fileGrid.appendChild(el);
+        });
+    }
+
+    // --- Selection Logic ---
+    function toggleSelection(name) {
+        if (selectedItems.has(name)) {
+            selectedItems.delete(name);
+        } else {
+            selectedItems.add(name);
+        }
+        updateSelectionUI();
+        refreshCurrentDir(); // Re-render to update classes
+    }
+
+    function updateSelectionUI() {
+        const actionArea = document.getElementById('multiSelectActions');
+        const countSpan = document.getElementById('selectedCount');
+
+        if (selectedItems.size > 0) {
+            actionArea.classList.remove('hidden');
+            countSpan.textContent = `${selectedItems.size} selected`;
+        } else {
+            actionArea.classList.add('hidden');
+        }
+    }
+
+    // --- File Operations ---
+
+    function createFolder() {
+        const name = document.getElementById('newFolderName').value;
+        if (!name) return;
+
+        fetch(`{{ url_for('file_manager.create_folder') }}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: currentPath, name: name })
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.error) throw new Error(data.error);
+                closeModal('createFolderModal');
+                document.getElementById('newFolderName').value = '';
+                refreshCurrentDir();
+            })
+            .catch(err => alert(err.message));
+    }
+
+    function createFile() {
+        const name = document.getElementById('newFileName').value;
+        if (!name) return;
+
+        fetch(`{{ url_for('file_manager.create_file') }}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: currentPath, name: name })
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.error) throw new Error(data.error);
+                closeModal('createFileModal');
+                document.getElementById('newFileName').value = '';
+                refreshCurrentDir();
+
+                // Optionally open editor immediately
+                openEditor((currentPath ? currentPath + '/' : '') + name);
+            })
+            .catch(err => alert(err.message));
+    }
+
+    function openEditor(path) {
+        currentEditingFile = path;
+        loadingIndicator.classList.remove('hidden');
+
+        fetch(`{{ url_for('file_manager.get_content') }}?path=${encodeURIComponent(path)}`)
+            .then(r => r.json())
+            .then(data => {
+                if (data.error) throw new Error(data.error);
+
+                document.getElementById('fileEditor').value = data.content;
+                document.getElementById('editorTitle').textContent = 'Editing: ' + path.split('/').pop();
+                document.getElementById('editorModal').classList.remove('hidden');
+            })
+            .catch(err => alert(err.message))
+            .finally(() => loadingIndicator.classList.add('hidden'));
+    }
+
+    function saveFileContent() {
+        if (!currentEditingFile) return;
+
+        const content = document.getElementById('fileEditor').value;
+        loadingIndicator.classList.remove('hidden');
+
+        fetch(`{{ url_for('file_manager.save_content') }}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: currentEditingFile, content: content })
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.error) throw new Error(data.error);
+                closeModal('editorModal');
+                // Show success toast (optional)
+            })
+            .catch(err => alert('Failed to save: ' + err.message))
+            .finally(() => loadingIndicator.classList.add('hidden'));
+    }
+
+    function compressSelected() {
+        if (selectedItems.size === 0) return;
+        document.getElementById('compressModal').classList.remove('hidden');
+        document.getElementById('archiveName').focus();
+    }
+
+    function performCompression() {
+        const name = document.getElementById('archiveName').value || 'archive.zip';
+        loadingIndicator.classList.remove('hidden');
+        closeModal('compressModal');
+
+        fetch(`{{ url_for('file_manager.compress_files') }}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                path: currentPath,
+                items: Array.from(selectedItems),
+                name: name
+            })
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.error) throw new Error(data.error);
+                selectedItems.clear();
+                updateSelectionUI();
+                refreshCurrentDir();
+            })
+            .catch(err => alert('Compression failed: ' + err.message))
+            .finally(() => loadingIndicator.classList.add('hidden'));
+    }
+
+    function extractFile(path) {
+        if (!confirm('Extract this archive here?')) return;
+
+        loadingIndicator.classList.remove('hidden');
+
+        fetch(`{{ url_for('file_manager.extract_file') }}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: path })
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.error) throw new Error(data.error);
+                refreshCurrentDir();
+            })
+            .catch(err => alert('Extraction failed: ' + err.message))
+            .finally(() => loadingIndicator.classList.add('hidden'));
+    }
+
+    function deleteItem(path, type) {
+        if (!confirm(`Are you sure you want to delete this ${type}?`)) return;
+
+        fetch(`{{ url_for('file_manager.delete_item') }}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: path })
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.error) throw new Error(data.error);
+                // If deleted item was selected, unselect it
+                const name = path.split('/').pop();
+                if (selectedItems.has(name)) {
+                    selectedItems.delete(name);
+                    updateSelectionUI();
+                }
+                refreshCurrentDir();
+            })
+            .catch(err => alert(err.message));
+    }
+
+    // --- Helpers ---
+
+    function showCreateFolderModal() {
+        document.getElementById('createFolderModal').classList.remove('hidden');
+        document.getElementById('newFolderName').focus();
+    }
+
+    function showCreateFileModal() {
+        document.getElementById('createFileModal').classList.remove('hidden');
+        document.getElementById('newFileName').focus();
+    }
+
+    function closeModal(id) {
+        document.getElementById(id).classList.add('hidden');
+    }
+
+    function downloadItem(path) {
+        window.location.href = `{{ url_for('file_manager.download_file') }}?path=${encodeURIComponent(path)}`;
+    }
+
+    function isEditable(filename) {
+        const ext = filename.split('.').pop().toLowerCase();
+        return ['txt', 'html', 'css', 'js', 'json', 'py', 'md', 'xml', 'log', 'env'].includes(ext);
+    }
+
+    function formatSize(bytes) {
+        if (bytes === 0) return '';
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    }
+
+    function getFileIcon(filename) {
+        const ext = filename.split('.').pop().toLowerCase();
+        let color = 'text-gray-400';
+        let path = '';
+
+        if (ext === 'zip') {
+            return `<svg class="w-10 h-10 text-orange-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>`;
+        }
+
+        switch (ext) {
+            case 'html':
+            case 'css':
+            case 'js':
+            case 'json':
+                color = 'text-blue-500';
+                path = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>`;
+                break;
+            case 'jpg':
+            case 'jpeg':
+            case 'png':
+            case 'gif':
+            case 'webp':
+            case 'svg':
+                color = 'text-purple-500';
+                path = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>`;
+                break;
+            default:
+                path = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>`;
+        }
+
+        return `<svg class="w-10 h-10 ${color} mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">${path}</svg>`;
+    }
+
+    // Drag and Drop (Reuse existing with minor check)
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('border-gold', 'bg-gold/5');
+    });
+
+    dropZone.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('border-gold', 'bg-gold/5');
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('border-gold', 'bg-gold/5');
+        const files = e.dataTransfer.files;
+        handleFiles(files);
+    });
+
+    function handleFileSelect(e) {
+        handleFiles(e.target.files);
+    }
+
+    function handleFiles(files) {
+        if (!files.length) return;
+
+        const formData = new FormData();
+        formData.append('path', currentPath);
+        for (let i = 0; i < files.length; i++) {
+            formData.append('files[]', files[i]);
+        }
+
+        loadingIndicator.classList.remove('hidden');
+
+        fetch(`{{ url_for('file_manager.upload_file') }}`, {
+            method: 'POST',
+            body: formData
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.errors && data.errors.length) {
+                    alert('Some files failed to upload:\n' + data.errors.join('\n'));
+                }
+                refreshCurrentDir();
+            })
+            .catch(err => alert('Upload failed: ' + err.message))
+            .finally(() => {
+                loadingIndicator.classList.add('hidden');
+            });
+    }
+</script>
+{% endblock %}

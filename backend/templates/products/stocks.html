@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+
+{% block title %}Stock Management - Admin Panel{% endblock %}
+
+{% block page_title %}Stock Management{% endblock %}
+
+{% block content %}
+<div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+    <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Inventory Control</h2>
+</div>
+
+<div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm transition-theme">
+    
+    <!-- Search & Filter -->
+    <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-800">
+        <form method="GET" class="flex flex-col sm:flex-row gap-3">
+            <div class="flex-1">
+                <input type="text" name="search" value="{{ search }}" placeholder="Search by name or SKU..."
+                    class="w-full px-4 py-2 bg-white dark:bg-black border border-gray-300 dark:border-gray-700 rounded-lg text-sm dark:text-white focus:ring-1 focus:ring-gold focus:outline-none">
+            </div>
+            <select name="stock_status" class="px-4 py-2 bg-white dark:bg-black border border-gray-300 dark:border-gray-700 rounded-lg text-sm dark:text-white focus:outline-none">
+                <option value="">All Statuses</option>
+                <option value="in_stock" {% if stock_status_filter=='in_stock' %}selected{% endif %}>In Stock</option>
+                <option value="out_of_stock" {% if stock_status_filter=='out_of_stock' %}selected{% endif %}>Out of Stock</option>
+            </select>
+            <button type="submit" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors">
+                Filter
+            </button>
+        </form>
+    </div>
+
+    <!-- Table -->
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
+            <thead class="bg-gray-50 dark:bg-gray-800">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Product</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">SKU</th>
+                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Quantity</th>
+                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-800">
+                {% for product in pagination.items %}
+                <tr id="row-{{ product.id }}">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                            <div class="h-10 w-10 flex-shrink-0">
+                                {% if product.primary_image %}
+                                <img class="h-10 w-10 rounded-md object-cover" src="{{ product.primary_image }}" alt="">
+                                {% else %}
+                                <div class="h-10 w-10 rounded-md bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-400">
+                                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="ml-4">
+                                <div class="text-sm font-medium text-gray-900 dark:text-white">{{ product.title }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        {{ product.sku or '-' }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-center">
+                        <span id="status-badge-{{ product.id }}" 
+                            class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                            {% if product.stock_status == 'in_stock' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+                            {% else %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200{% endif %}">
+                            {{ product.stock_status|replace('_', ' ')|title }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center gap-2">
+                            <button onclick="updateStock('{{ product.id }}', -1)" class="p-1 rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 text-gray-600 dark:text-gray-300">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path></svg>
+                            </button>
+                            <span id="qty-{{ product.id }}" class="w-12 text-center text-sm font-medium dark:text-white">{{ product.stock_quantity }}</span>
+                            <button onclick="updateStock('{{ product.id }}', 1)" class="p-1 rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 text-gray-600 dark:text-gray-300">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+                            </button>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button onclick="toggleStatus('{{ product.id }}', '{{ product.stock_status }}')" 
+                            class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300">
+                            Toggle Status
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if pagination.pages > 1 %}
+    <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-800">
+        <div class="flex justify-between items-center sm:hidden">
+            {% if pagination.has_prev %}
+            <a href="{{ url_for('products.stocks', page=pagination.prev_num, search=search, stock_status=stock_status_filter) }}" class="px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">Previous</a>
+            {% endif %}
+            {% if pagination.has_next %}
+            <a href="{{ url_for('products.stocks', page=pagination.next_num, search=search, stock_status=stock_status_filter) }}" class="ml-3 px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">Next</a>
+            {% endif %}
+        </div>
+        <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+            <div>
+                <p class="text-sm text-gray-700 dark:text-gray-400">
+                    Showing <span class="font-medium">{{ (pagination.page - 1) * pagination.per_page + 1 }}</span> to <span class="font-medium">{{ pagination.page * pagination.per_page if pagination.page * pagination.per_page < pagination.total else pagination.total }}</span> of <span class="font-medium">{{ pagination.total }}</span> results
+                </p>
+            </div>
+            <div>
+                <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                    {% for p in pagination.iter_pages() %}
+                        {% if p %}
+                            {% if p == pagination.page %}
+                            <span class="relative inline-flex items-center px-4 py-2 border border-blue-500 bg-blue-50 text-sm font-medium text-blue-600 z-10">
+                                {{ p }}
+                            </span>
+                            {% else %}
+                            <a href="{{ url_for('products.stocks', page=p, search=search, stock_status=stock_status_filter) }}" class="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-500 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 relative inline-flex items-center px-4 py-2 border text-sm font-medium">
+                                {{ p }}
+                            </a>
+                            {% endif %}
+                        {% else %}
+                        <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">...</span>
+                        {% endif %}
+                    {% endfor %}
+                </nav>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+async function updateStock(id, change) {
+    const qtySpan = document.getElementById(`qty-${id}`);
+    let currentQty = parseInt(qtySpan.innerText);
+    let newQty = currentQty + change;
+    if (newQty < 0) newQty = 0;
+
+    // Optimistic update
+    qtySpan.innerText = newQty;
+
+    try {
+        const response = await fetch(`/admin/products/quick-edit/${id}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ stock_quantity: newQty, manage_stock: true })
+        });
+        const data = await response.json();
+        
+        if (!data.success) {
+            // Revert on failure
+            qtySpan.innerText = currentQty;
+            alert(data.message || 'Error updating stock');
+        } else {
+             // Auto-update status badge if quantity hits 0 or positive
+             const badge = document.getElementById(`status-badge-${id}`);
+             if (newQty <= 0) {
+                 badge.className = "px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
+                 badge.innerText = "Out Of Stock";
+             } else {
+                 badge.className = "px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
+                 badge.innerText = "In Stock";
+             }
+        }
+    } catch (e) {
+        qtySpan.innerText = currentQty;
+        console.error(e);
+    }
+}
+
+async function toggleStatus(id, currentStatus) {
+    const newStatus = currentStatus === 'in_stock' ? 'out_of_stock' : 'in_stock';
+    
+    try {
+        const response = await fetch(`/admin/products/quick-edit/${id}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ stock_status: newStatus })
+        });
+        
+        if (response.ok) {
+            location.reload(); 
+        }
+    } catch (e) {
+        console.error(e);
+    }
+}
+</script>
+{% endblock %}

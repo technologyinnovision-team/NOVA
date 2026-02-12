@@ -1,0 +1,32 @@
+<div class="space-y-6">
+    <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Upsells</label>
+        <select name="upsells" multiple
+            class="custom-input w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none h-40">
+            {% if all_products %}
+            {% for p in all_products %}
+            {% if not product or p.id != product.id %}
+            <option value="{{ p.id }}" {% if product and p in product.upsells %}selected{% endif %}>{{ p.title }}
+            </option>
+            {% endif %}
+            {% endfor %}
+            {% endif %}
+        </select>
+        <p class="mt-1 text-xs text-gray-500">Hold Ctrl/Cmd to select multiple.</p>
+    </div>
+
+    <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Cross-sells</label>
+        <select name="cross_sells" multiple
+            class="custom-input w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none h-40">
+            {% if all_products %}
+            {% for p in all_products %}
+            {% if not product or p.id != product.id %}
+            <option value="{{ p.id }}" {% if product and p in product.cross_sells %}selected{% endif %}>{{ p.title }}
+            </option>
+            {% endif %}
+            {% endfor %}
+            {% endif %}
+        </select>
+    </div>
+</div>

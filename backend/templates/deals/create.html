@@ -1,0 +1,312 @@
+{% extends "base.html" %}
+
+{% block title %}{% if deal %}Edit Deal{% else %}Create Deal{% endif %} - Admin Panel{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="flex items-center gap-4 mb-6">
+        <a href="{{ url_for('deals_admin.list_deals') }}"
+            class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 transition-colors">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18">
+                </path>
+            </svg>
+        </a>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">
+            {% if deal %}Edit Deal: {{ deal.product.title }}{% else %}Create New Deal{% endif %}
+        </h1>
+    </div>
+
+    <form method="POST" enctype="multipart/form-data" class="space-y-6">
+        <!-- Basic Info -->
+        <div
+            class="bg-white dark:bg-[#1f1f1f] rounded-xl shadow-lg dark:shadow-none border border-gray-100 dark:border-gray-800 p-6">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Basic Information</h2>
+
+            <div class="grid grid-cols-1 gap-6">
+                <div>
+                    <label for="title"
+                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Title</label>
+                    <input type="text" name="title" id="title" required value="{{ deal.product.title if deal else '' }}"
+                        class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-gold/50 focus:border-gold transition-colors">
+                </div>
+
+                <div class="grid grid-cols-2 gap-6">
+                    <div>
+                        <label for="price" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Price
+                            (Rs)</label>
+                        <input type="number" name="price" id="price" required step="0.01"
+                            value="{{ deal.product.regular_price if deal else '' }}"
+                            class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-gold/50 focus:border-gold transition-colors">
+                    </div>
+                    <div>
+                        <label for="status"
+                            class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
+                        <select name="status" id="status"
+                            class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-gold/50 focus:border-gold transition-colors">
+                            <option value="draft" {% if deal and deal.product.status=='draft' %}selected{% endif %}>
+                                Draft</option>
+                            <option value="published" {% if deal and deal.product.status=='published' %}selected{% endif
+                                %}>Published</option>
+                            <option value="private" {% if deal and deal.product.status=='private' %}selected{% endif %}>
+                                Private</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label for="description"
+                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
+                    <textarea name="description" id="description" rows="3"
+                        class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-gold/50 focus:border-gold transition-colors">{{ deal.product.description if deal else '' }}</textarea>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Featured
+                        Image</label>
+                    <div class="flex items-center gap-4">
+                        {% if deal and deal.featured_image %}
+                        <img src="{{ deal.featured_image }}" alt="Featured"
+                            class="w-20 h-20 object-cover rounded-lg border border-gray-200">
+                        {% endif %}
+                        <input type="file" name="featured_image" accept="image/*" class="block w-full text-sm text-gray-500
+                            file:mr-4 file:py-2 file:px-4
+                            file:rounded-full file:border-0
+                            file:text-sm file:font-semibold
+                            file:bg-gold/10 file:text-gold
+                            hover:file:bg-gold/20
+                        " />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slots Management (JS-based) -->
+        <div
+            class="bg-white dark:bg-[#1f1f1f] rounded-xl shadow-lg dark:shadow-none border border-gray-100 dark:border-gray-800 p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Slots Configuration</h2>
+                <button type="button" onclick="addSlot()"
+                    class="px-3 py-1.5 text-sm bg-gold hover:bg-gold-light text-white rounded-lg transition-colors flex items-center gap-1">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                    </svg>
+                    Add Slot
+                </button>
+            </div>
+
+            <div id="slots-container" class="space-y-4">
+                <!-- Slots will be injected here via JS -->
+            </div>
+
+            <!-- Hidden input to store slots data -->
+            <input type="hidden" name="slots_data" id="slots_data">
+        </div>
+
+        <div class="flex justify-end gap-3">
+            <a href="{{ url_for('deals_admin.list_deals') }}"
+                class="px-6 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                Cancel
+            </a>
+            <button type="submit"
+                class="px-6 py-2 rounded-lg bg-gold hover:bg-gold-light text-white font-medium shadow-lg shadow-gold/20 transition-all transform active:scale-95">
+                {% if deal %}Update Deal{% else %}Create Deal{% endif %}
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Categories Data (Hidden) -->
+<script>
+    // Ensure proper serialization for JS
+    const ALL_CATEGORIES = {{ categories| tojson | safe }};
+    const ALL_PRODUCTS = {{ products| tojson | safe }};
+    // Deal slots or empty array (using pre-serialized data)
+    const EXISTING_SLOTS = {{ slots_data| tojson | safe }};
+</script>
+
+<script>
+    let slots = [];
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+        if (EXISTING_SLOTS && EXISTING_SLOTS.length > 0) {
+            // Map existing slots to our format
+            slots = EXISTING_SLOTS.map(s => ({
+                id: s.id,
+                title: s.title,
+                required_quantity: s.required_quantity,
+                allow_stitching: s.allow_stitching,
+                allow_custom_size: s.allow_custom_size,
+                allowed_category_ids: s.allowed_categories.map(c => c.id),
+                allowed_product_ids: s.allowed_products ? s.allowed_products.map(p => p.id) : []
+            }));
+        } else {
+            // Default empty slot if creating new
+            // Check if we are in create mode by checking EXISTING_SLOTS length
+            if (EXISTING_SLOTS.length === 0) {
+                addSlot(false);
+            }
+        }
+        renderSlots();
+    });
+
+    function addSlot(render = true) {
+        slots.push({
+            title: '',
+            required_quantity: 1,
+            allow_stitching: false,
+            allow_custom_size: false,
+            allowed_category_ids: [],
+            allowed_product_ids: []
+        });
+        if (render) renderSlots();
+    }
+
+    function removeSlot(index) {
+        slots.splice(index, 1);
+        renderSlots();
+    }
+
+    function updateSlot(index, key, value) {
+        slots[index][key] = value;
+        renderSlots();
+    }
+
+    // Optimized title update to avoid focus loss
+    function updateTitle(index, value) {
+        slots[index].title = value;
+    }
+
+    function toggleCategory(slotIndex, catId) {
+        const slot = slots[slotIndex];
+        const idx = slot.allowed_category_ids.indexOf(catId);
+        if (idx > -1) {
+            slot.allowed_category_ids.splice(idx, 1);
+        } else {
+            slot.allowed_category_ids.push(catId);
+        }
+        renderSlots();
+    }
+
+    function toggleProduct(slotIndex, prodId) {
+        const slot = slots[slotIndex];
+        if (!slot.allowed_product_ids) slot.allowed_product_ids = [];
+
+        const idx = slot.allowed_product_ids.indexOf(prodId);
+        if (idx > -1) {
+            slot.allowed_product_ids.splice(idx, 1);
+        } else {
+            slot.allowed_product_ids.push(prodId);
+        }
+        renderSlots();
+    }
+
+    // Simple filter function for products
+    function filterProducts(slotIndex, query) {
+        const container = document.getElementById(`products-list-${slotIndex}`);
+        const buttons = container.getElementsByTagName('button');
+        const lowerQuery = query.toLowerCase();
+
+        for (let btn of buttons) {
+            const title = btn.getAttribute('data-title').toLowerCase();
+            if (title.includes(lowerQuery)) {
+                btn.style.display = 'inline-block';
+            } else {
+                btn.style.display = 'none';
+            }
+        }
+    }
+
+    function renderSlots() {
+        const container = document.getElementById('slots-container');
+        container.innerHTML = '';
+
+        slots.forEach((slot, index) => {
+            const slotHtml = `
+                <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-800/50 transition-all">
+                    <div class="flex items-center gap-3 mb-3">
+                        <input type="text" value="${slot.title}" placeholder="Slot Title (e.g. Select Kurta)"
+                               oninput="updateTitle(${index}, this.value)"
+                               class="flex-1 px-3 py-2 text-sm rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-1 focus:ring-gold focus:border-gold outline-none transition-shadow">
+                        <button type="button" onclick="removeSlot(${index})" class="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                        <div>
+                            <label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-1">Qty Required</label>
+                            <div class="flex items-center">
+                                <button type="button" onclick="if(slots[${index}].required_quantity > 1) { updateSlot(${index}, 'required_quantity', slots[${index}].required_quantity - 1); }" class="px-3 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-l text-gray-700 dark:text-gray-300 transition-colors">-</button>
+                                <span class="px-4 py-2 bg-white dark:bg-gray-800 border-t border-b border-gray-200 dark:border-gray-700 text-sm font-medium w-12 text-center text-gray-900 dark:text-white">${slot.required_quantity}</span>
+                                <button type="button" onclick="updateSlot(${index}, 'required_quantity', slots[${index}].required_quantity + 1);" class="px-3 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-r text-gray-700 dark:text-gray-300 transition-colors">+</button>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2 pt-6">
+                            <input type="checkbox" id="stitching-${index}" ${slot.allow_stitching ? 'checked' : ''} 
+                                   onchange="updateSlot(${index}, 'allow_stitching', this.checked)"
+                                   class="w-4 h-4 text-gold border-gray-300 rounded focus:ring-gold">
+                            <label for="stitching-${index}" class="text-sm text-gray-700 dark:text-gray-300">Allow Stitching</label>
+                        </div>
+                        <div class="flex items-center gap-2 pt-6">
+                            <input type="checkbox" id="custom-${index}" ${slot.allow_custom_size ? 'checked' : ''} 
+                                   onchange="updateSlot(${index}, 'allow_custom_size', this.checked)"
+                                   class="w-4 h-4 text-gold border-gray-300 rounded focus:ring-gold">
+                            <label for="custom-${index}" class="text-sm text-gray-700 dark:text-gray-300">Allow Custom Size</label>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-2">Allowed Categories</label>
+                        <div class="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-2 border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-800">
+                            ${ALL_CATEGORIES.map(cat => `
+                                <button type="button" 
+                                        onclick="toggleCategory(${index}, ${cat.id})"
+                                        class="px-2 py-1 text-xs rounded-full border transition-colors ${slot.allowed_category_ids.includes(cat.id)
+                    ? 'bg-gold/20 border-gold text-gold-dark dark:text-gold font-medium'
+                    : 'bg-gray-100 dark:bg-gray-700 border-transparent text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+                }">
+                                    ${cat.name}
+                                </button>
+                            `).join('')}
+                        </div>
+                        <p class="text-xs text-gray-400 mt-1">${slot.allowed_category_ids.length} selected</p>
+                    </div>
+
+                    <div class="mt-4">
+                        <label class="block text-xs font-semibold uppercase text-gray-500 dark:text-gray-400 mb-2">Allowed Products (Specific)</label>
+                        <input type="text" placeholder="Search products..." 
+                               oninput="filterProducts(${index}, this.value)"
+                               class="w-full mb-2 px-3 py-1.5 text-sm rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-1 focus:ring-gold focus:border-gold outline-none">
+                        
+                        <div id="products-list-${index}" class="flex flex-wrap gap-2 max-h-48 overflow-y-auto p-2 border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-800">
+                            ${ALL_PRODUCTS.map(prod => `
+                                <button type="button" 
+                                        data-title="${prod.title}"
+                                        onclick="toggleProduct(${index}, ${prod.id})"
+                                        class="px-2 py-1 text-xs rounded-full border transition-colors ${slot.allowed_product_ids && slot.allowed_product_ids.includes(prod.id)
+                        ? 'bg-gold/20 border-gold text-gold-dark dark:text-gold font-medium'
+                        : 'bg-gray-100 dark:bg-gray-700 border-transparent text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+                    }">
+                                    ${prod.title}
+                                </button>
+                            `).join('')}
+                        </div>
+                        <p class="text-xs text-gray-400 mt-1">${slot.allowed_product_ids ? slot.allowed_product_ids.length : 0} selected</p>
+                    </div>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', slotHtml);
+        });
+
+        // Update hidden input
+        document.getElementById('slots_data').value = JSON.stringify(slots);
+    }
+
+    // Hook into form submit to ensure latest data
+    document.querySelector('form').addEventListener('submit', () => {
+        document.getElementById('slots_data').value = JSON.stringify(slots);
+    });
+</script>
+{% endblock %}

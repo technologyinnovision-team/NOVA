@@ -1,0 +1,200 @@
+<div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+    <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Media Gallery</h3>
+        <button type="button" onclick="openMediaLibrary()" class="text-sm text-gold hover:text-yellow-600 font-medium">
+            Open Library
+        </button>
+    </div>
+
+    <!-- Upload/Add Area -->
+    <div id="image-upload-area" onclick="openMediaLibrary()"
+        class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-8 text-center cursor-pointer hover:border-primary-gold hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all">
+        <div class="flex flex-col items-center">
+            <svg class="h-10 w-10 text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z">
+                </path>
+            </svg>
+            <span class="text-gray-600 dark:text-gray-300 font-medium">Add Images</span>
+            <span class="text-gray-400 text-sm mt-1">Select from Library or Upload</span>
+        </div>
+    </div>
+
+    <!-- Image Grid -->
+    <div id="image-preview-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-6">
+        {% if product and product.images %}
+        {% for img in product.images|sort(attribute='image_order') %}
+        <div class="relative group rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 aspect-square"
+            id="image-card-{{ loop.index0 }}">
+            <img src="{{ img.image_url }}" class="w-full h-full object-cover">
+
+            <!-- Primary Badge -->
+            <span id="badge-{{ loop.index0 }}"
+                class="absolute top-2 left-2 bg-yellow-400 text-black text-xs font-bold px-2 py-1 rounded shadow-sm {% if not img.is_primary %}hidden{% endif %}">
+                Primary
+            </span>
+
+            <!-- Actions Overlay -->
+            <div
+                class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
+
+                <button type="button" onclick="setPrimary({{ loop.index0 }})"
+                    class="px-3 py-1 bg-white text-black text-xs font-bold rounded-full hover:bg-gray-100 shadow-sm">
+                    Make Primary
+                </button>
+
+                <button type="button" onclick="removeImage({{ loop.index0 }}, {{ img.id }})"
+                    class="text-white bg-red-500 p-1.5 rounded-full hover:bg-red-600 shadow-lg" title="Delete">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                        </path>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Hidden inputs for existing images -->
+            <input type="hidden" name="existing_images[]" value="{{ img.id }}">
+            <!-- We track primary status in a single hidden input for the whole form, but for existing it's already in DB.
+                  However, if we change primary, we need to signal it. -->
+        </div>
+        {% endfor %}
+        {% endif %}
+    </div>
+
+    <!-- Hidden state inputs -->
+    <!-- JSON string of NEWLY added media URLs/IDs from the modal -->
+    <input type="hidden" id="new_media_urls" name="new_media_urls" value="[]">
+
+    <!-- ID of the selected primary image. For existing, it's the ID. For new, it could be the URL or index. 
+         Let's try a unified approach: track the 'primary_image_identifier' which is either ID (existing) or URL (new). -->
+    <input type="hidden" id="primary_image_identifier" name="primary_image_identifier"
+        value="{{ product.get_primary_image().id if product and product.get_primary_image() else '' }}">
+
+    <!-- IDs of images to delete -->
+    <input type="hidden" id="delete_images" name="delete_images" value="">
+</div>
+
+<!-- Modal Component -->
+{% include "components/media_modal.html" %}
+<script src="{{ url_for('static', filename='js/media-modal.js') }}"></script>
+
+<script>
+    // State management for images
+    let currentImages = []; // Array of {id: 123, url: '...', isNew: false, isPrimary: false}
+
+    // Initialize from server-side data
+    {% if product and product.images %}
+    {% for img in product.images | sort(attribute = 'image_order') %}
+    currentImages.push({
+        id: {{ img.id }},
+        url: '{{ img.image_url }}',
+        isNew: false,
+        isPrimary: {{ 'true' if img.is_primary else 'false' }}
+            });
+    {% endfor %}
+    {% endif %}
+
+    function renderGallery() {
+        const grid = document.getElementById('image-preview-grid');
+        grid.innerHTML = '';
+
+        currentImages.forEach((img, index) => {
+            const dim = img.isPrimary ? '' : 'hidden';
+
+            const colHTML = `
+            <div class="relative group rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 aspect-square">
+                <img src="${img.url}" class="w-full h-full object-cover">
+                
+                <span class="absolute top-2 left-2 bg-yellow-400 text-black text-xs font-bold px-2 py-1 rounded shadow-sm ${dim}">
+                    Primary
+                </span>
+
+                <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
+                    ${!img.isPrimary ? `
+                    <button type="button" onclick="setPrimary(${index})"
+                        class="px-3 py-1 bg-white text-black text-xs font-bold rounded-full hover:bg-gray-100 shadow-sm">
+                        Make Primary
+                    </button>` : ''}
+                    
+                    <button type="button" onclick="removeImage(${index})"
+                        class="text-white bg-red-500 p-1.5 rounded-full hover:bg-red-600 shadow-lg" title="Delete">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                            </path>
+                        </svg>
+                    </button>
+                </div>
+            </div>`;
+
+            grid.insertAdjacentHTML('beforeend', colHTML);
+        });
+
+        updateHiddenInputs();
+    }
+
+    function openMediaLibrary() {
+        MediaLibrary.open({
+            multiSelect: true,
+            onSelect: (files) => {
+                // files is array of {url, name, ...}
+                files.forEach(f => {
+                    // Check if already added
+                    if (!currentImages.some(img => img.url === f.url)) {
+                        currentImages.push({
+                            id: null, // New image
+                            url: f.url,
+                            isNew: true,
+                            isPrimary: currentImages.length === 0 // Make primary if first
+                        });
+                    }
+                });
+                renderGallery();
+            }
+        });
+    }
+
+    function setPrimary(index) {
+        currentImages.forEach((img, i) => {
+            img.isPrimary = (i === index);
+        });
+        renderGallery();
+    }
+
+    function removeImage(index) {
+        const img = currentImages[index];
+        if (!img.isNew) {
+            // Mark for deletion in backend
+            const deleteInput = document.getElementById('delete_images');
+            const currentDeleted = deleteInput.value ? deleteInput.value.split(',') : [];
+            currentDeleted.push(img.id);
+            deleteInput.value = currentDeleted.join(',');
+        }
+
+        currentImages.splice(index, 1);
+
+        // If we removed the primary, make the first one primary
+        if (img.isPrimary && currentImages.length > 0) {
+            currentImages[0].isPrimary = true;
+        }
+
+        renderGallery();
+    }
+
+    function updateHiddenInputs() {
+        const newMediaInput = document.getElementById('new_media_urls');
+        const primaryInput = document.getElementById('primary_image_identifier');
+
+        // Filter only new images
+        const newImages = currentImages.filter(img => img.isNew).map(img => img.url);
+        newMediaInput.value = JSON.stringify(newImages);
+
+        // Find primary
+        const primary = currentImages.find(img => img.isPrimary);
+        if (primary) {
+            // Pass URL if new, ID if existing (prefix with 'id:')
+            primaryInput.value = primary.isNew ? primary.url : `id:${primary.id}`;
+        } else {
+            primaryInput.value = '';
+        }
+    }
+</script>

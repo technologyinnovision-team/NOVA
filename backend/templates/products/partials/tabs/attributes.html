@@ -1,0 +1,54 @@
+<div class="flex justify-between items-center mb-4">
+    <h4 class="text-sm font-medium text-gray-900 dark:text-white">Product Attributes</h4>
+    <button type="button" onclick="addAttributeRow()"
+        class="px-3 py-1.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-md text-sm hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
+        Add Attribute
+    </button>
+</div>
+
+<div id="attributes-container" class="space-y-4">
+    {% if product and product.attributes %}
+    {% for attr in product.attributes %}
+    <div
+        class="attribute-row border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-900 relative group">
+        <button type="button" onclick="this.closest('.attribute-row').remove()"
+            class="absolute top-2 right-2 text-gray-400 hover:text-red-500 transition-colors">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+        </button>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+                <label class="block text-xs font-medium text-gray-500 mb-1">Name</label>
+                <input type="text" name="attr_name[]" value="{{ attr.name }}" placeholder="e.g. Color"
+                    class="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md">
+            </div>
+            <div class="md:col-span-2">
+                <label class="block text-xs font-medium text-gray-500 mb-1">Values (comma separated)</label>
+                <input type="text" name="attr_values[]" value="{{ attr.terms|map(attribute='name')|join(', ') }}"
+                    placeholder="e.g. Red, Blue, Green"
+                    class="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md">
+            </div>
+            <div class="flex flex-col justify-end space-y-2">
+                <label class="flex items-center gap-2">
+                    <input type="hidden" name="attr_visible_idx[]" value="{{ '1' if attr.visible else '0' }}">
+                    <input type="checkbox" name="attr_visible[]" value="1" {% if attr.visible %}checked{% endif %}
+                        class="rounded border-gray-300 text-primary-gold"
+                        onchange="this.previousElementSibling.value = this.checked ? '1' : '0'">
+                    <span class="text-sm text-gray-600 dark:text-gray-400">Visible</span>
+                </label>
+                <label class="flex items-center gap-2">
+                    <input type="hidden" name="attr_use_for_variations_idx[]"
+                        value="{{ '1' if attr.use_for_variations else '0' }}">
+                    <input type="checkbox" name="attr_use_for_variations[]" value="1" {% if attr.use_for_variations
+                        %}checked{% endif %} class="rounded border-gray-300 text-primary-gold"
+                        onchange="this.previousElementSibling.value = this.checked ? '1' : '0'">
+                    <span class="text-sm text-gray-600 dark:text-gray-400">Used for variations</span>
+                </label>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+    {% endif %}
+</div>
+<p class="text-xs text-gray-500 mt-4">Save attributes before generating variations.</p>

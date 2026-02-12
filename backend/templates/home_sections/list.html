@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+
+{% block title %}Home Sections - Admin Panel{% endblock %}
+
+{% block page_title %}Home Sections{% endblock %}
+
+{% block content %}
+<div class="mb-4 lg:mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
+    <h2 class="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">Manage Home Sections</h2>
+    <a href="{{ url_for('home_sections.create_section') }}"
+        class="px-3 sm:px-4 py-2 bg-pink hover:bg-pink-dark text-white rounded-lg transition-colors text-xs sm:text-sm font-medium whitespace-nowrap">
+        Add New Section
+    </a>
+</div>
+
+<div
+    class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm dark:shadow-none overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
+            <thead class="bg-gray-50 dark:bg-gray-800">
+                <tr>
+                    <th
+                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Order</th>
+                    <th
+                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Title</th>
+                    <th
+                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Type</th>
+                    <th
+                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Details</th>
+                    <th
+                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Status</th>
+                    <th
+                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        Actions</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-800"
+                id="sortable-sections">
+                {% if sections %}
+                {% for section in sections %}
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors" data-id="{{ section.id }}">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 cursor-move">
+                        <svg class="w-5 h-5 inline-block mr-2 text-gray-400" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16">
+                            </path>
+                        </svg>
+                        {{ section.display_order }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm font-medium text-gray-900 dark:text-white">{{ section.title }}</div>
+                        {% if section.subtitle %}
+                        <div class="text-xs text-gray-500">{{ section.subtitle }}</div>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                {% if section.section_type == 'new_arrivals' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+                                {% elif section.section_type == 'sale' %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200
+                                {% elif section.section_type == 'category' %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200
+                                {% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300{% endif %}">
+                            {{ section.section_type|replace('_', ' ')|title }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        {% if section.section_type == 'category' and section.category %}
+                        Category: {{ section.category.name }}
+                        {% endif %}
+                        <div class="text-xs mt-1">Limit: {{ section.item_limit }} items</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <button onclick="toggleStatus({{ section.id }})"
+                            class="relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink 
+                                {% if section.is_active %}bg-green-500{% else %}bg-gray-200 dark:bg-gray-700{% endif %}" role="switch"
+                            aria-checked="{{ section.is_active|lower }}">
+                            <span class="sr-only">Use setting</span>
+                            <span aria-hidden="true" class="pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform ring-0 transition ease-in-out duration-200 
+                                    {% if section.is_active %}translate-x-5{% else %}translate-x-0{% endif %}">
+                            </span>
+                        </button>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div class="flex items-center gap-3">
+                            <a href="{{ url_for('home_sections.edit_section', section_id=section.id) }}"
+                                class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300">Edit</a>
+                            <form action="{{ url_for('home_sections.delete_section', section_id=section.id) }}"
+                                method="POST"
+                                onsubmit="return confirm('Are you sure you want to delete this section?');"
+                                class="inline">
+                                <button type="submit"
+                                    class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300">Delete</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+                {% else %}
+                <tr>
+                    <td colspan="6" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                        No home sections found. Create one to get started!
+                    </td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<script>
+    // Toggle Status
+    async function toggleStatus(id) {
+        try {
+            const response = await fetch(`/admin/home-sections/toggle-status/${id}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            const data = await response.json();
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error updating status');
+            }
+        } catch (e) {
+            console.error(e);
+            alert('Error updating status');
+        }
+    }
+
+    // Drag and Drop Sorting
+    const el = document.getElementById('sortable-sections');
+    const sortable = Sortable.create(el, {
+        animation: 150,
+        handle: '.cursor-move',
+        onEnd: async function (evt) {
+            const items = Array.from(el.querySelectorAll('tr')).map((tr, index) => ({
+                id: tr.dataset.id,
+                order: index
+            }));
+
+            try {
+                const response = await fetch('/admin/home-sections/reorder', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(items)
+                });
+
+                if (!response.ok) {
+                    alert('Error saving order');
+                } else {
+                    // Update index numbers visually
+                    el.querySelectorAll('tr').forEach((tr, idx) => {
+                        tr.querySelector('td:first-child').innerHTML = `
+                            <svg class="w-5 h-5 inline-block mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path>
+                            </svg>
+                            ${idx}
+                        `;
+                    });
+                }
+            } catch (e) {
+                console.error(e);
+                alert('Error saving order');
+            }
+        }
+    });
+</script>
+{% endblock %}

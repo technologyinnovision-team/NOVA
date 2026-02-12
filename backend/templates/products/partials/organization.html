@@ -1,0 +1,70 @@
+<div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Organization</h3>
+
+    <div class="space-y-4">
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Gender</label>
+            <div
+                class="space-y-2 bg-gray-50 dark:bg-gray-900 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                {% set current_genders = product.gender if product and product.gender else [] %}
+                <label class="flex items-center space-x-2 cursor-pointer">
+                    <input type="checkbox" name="gender" value="men" {% if 'men' in current_genders %}checked{% endif %}
+                        class="rounded border-gray-300 text-primary-gold focus:ring-primary-gold">
+                    <span class="text-sm text-gray-700 dark:text-gray-300">Men</span>
+                </label>
+                <label class="flex items-center space-x-2 cursor-pointer">
+                    <input type="checkbox" name="gender" value="women" {% if 'women' in current_genders %}checked{%
+                        endif %} class="rounded border-gray-300 text-primary-gold focus:ring-primary-gold">
+                    <span class="text-sm text-gray-700 dark:text-gray-300">Women</span>
+                </label>
+                <label class="flex items-center space-x-2 cursor-pointer">
+                    <input type="checkbox" name="gender" value="kids" {% if 'kids' in current_genders %}checked{% endif
+                        %} class="rounded border-gray-300 text-primary-gold focus:ring-primary-gold">
+                    <span class="text-sm text-gray-700 dark:text-gray-300">Kids</span>
+                </label>
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Categories</label>
+            <div
+                class="h-40 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg p-2 bg-gray-50 dark:bg-gray-900">
+                {% for category in categories %}
+                <label
+                    class="flex items-center space-x-2 p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded cursor-pointer">
+                    <input type="checkbox" name="categories" value="{{ category.id }}" {% if product and category in
+                        product.categories %}checked{% endif %}
+                        class="rounded border-gray-300 text-primary-gold focus:ring-primary-gold">
+                    <span class="text-sm text-gray-700 dark:text-gray-300">{{ category.name }}</span>
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+
+        {% if brands %}
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Brand</label>
+            <div
+                class="h-32 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg p-2 bg-gray-50 dark:bg-gray-900">
+                {% for brand in brands %}
+                <label
+                    class="flex items-center space-x-2 p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded cursor-pointer">
+                    <input type="checkbox" name="brands" value="{{ brand.id }}" {% if product and product.brands and
+                        brand in product.brands %}checked{% endif %}
+                        class="rounded border-gray-300 text-primary-gold focus:ring-primary-gold">
+                    <span class="text-sm text-gray-700 dark:text-gray-300">{{ brand.name }}</span>
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tags</label>
+            <input type="text" name="tags"
+                value="{{ product.tags|map(attribute='name')|join(', ') if product else '' }}"
+                placeholder="Separate with commas"
+                class="custom-input w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none">
+        </div>
+    </div>
+</div>

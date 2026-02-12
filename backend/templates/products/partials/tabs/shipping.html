@@ -1,0 +1,33 @@
+<div class="space-y-6">
+    <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Weight (kg)</label>
+        <input type="number" step="0.01" name="weight" value="{{ product.weight if product else '' }}"
+            class="custom-input w-full md:w-1/2 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none">
+    </div>
+
+    <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Dimensions (cm)</label>
+        <div class="grid grid-cols-3 gap-4 md:w-1/2">
+            <input type="number" step="0.01" name="length" placeholder="Length"
+                value="{{ product.length if product else '' }}"
+                class="custom-input px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none">
+            <input type="number" step="0.01" name="width" placeholder="Width"
+                value="{{ product.width if product else '' }}"
+                class="custom-input px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none">
+            <input type="number" step="0.01" name="height" placeholder="Height"
+                value="{{ product.height if product else '' }}"
+                class="custom-input px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none">
+        </div>
+    </div>
+    <div class="mt-4">
+        <h5 class="text-sm font-medium text-gray-900 dark:text-white mb-2">Shipping Class</h5>
+        <select name="shipping_class"
+            class="custom-input w-full md:w-1/2 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none">
+            <option value="">No shipping class</option>
+            {% for sc in shipping_classes %}
+            <option value="{{ sc.id }}" {% if product and product.shipping_class_id==sc.id %}selected{% endif %}>{{
+                sc.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+</div>

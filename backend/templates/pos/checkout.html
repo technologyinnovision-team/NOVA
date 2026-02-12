@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}Checkout - POS Dashboard{% endblock %}
+
+{% block page_title %}Checkout{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-6">Stock Checkout</h1>
+
+    <div class="bg-white dark:bg-gray-900 shadow-md rounded-lg overflow-hidden mb-6">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-800">
+            <h2 class="text-xl font-semibold mb-2">Order Summary</h2>
+            <div class="flex justify-between items-center mb-2">
+                <span class="text-gray-600 dark:text-gray-400">{{ product.title }} (x{{ quantity }})</span>
+                <span class="font-medium">${{ "%.2f"|format(total_cost) }}</span>
+            </div>
+            <div class="border-t pt-4 mt-4 flex justify-between items-center text-lg font-bold">
+                <span>Total to Pay</span>
+                <span>${{ "%.2f"|format(total_cost) }}</span>
+            </div>
+        </div>
+
+        <div class="p-6">
+            <form action="{{ url_for('pos_dashboard.complete_purchase') }}" method="POST" id="checkout-form">
+                <input type="hidden" name="product_id" value="{{ product.id }}">
+                <input type="hidden" name="quantity" value="{{ quantity }}">
+                <input type="hidden" name="payment_intent_id" id="payment_intent_id">
+
+                <h3 class="text-lg font-medium mb-4">Payment Method</h3>
+
+                <!-- Wallet Option -->
+                <div class="mb-4">
+                    <label class="flex items-center p-4 border rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition 
+                        {% if wallet_balance < total_cost %}opacity-50{% endif %}">
+                        <input type="radio" name="payment_method" value="wallet"
+                            class="form-radio h-5 w-5 text-blue-600" {% if wallet_balance < total_cost %}disabled{% else
+                            %}checked{% endif %}>
+                        <div class="ml-3 flex-1">
+                            <span class="block font-medium">My Wallet</span>
+                            <span class="block text-sm text-gray-500">Balance: ${{ "%.2f"|format(wallet_balance)
+                                }}</span>
+                        </div>
+                        {% if wallet_balance < total_cost %} <span class="text-xs text-red-500 font-medium">Insufficient
+                            Funds</span>
+                            {% endif %}
+                    </label>
+                </div>
+
+                <!-- Insufficient Funds Message & Deposit Link -->
+                {% if wallet_balance < total_cost %} <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <div class="flex items-center text-red-700 font-medium mb-2">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        Insufficient Wallet Balance
+                    </div>
+                    <p class="text-sm text-red-600 mb-3">You need ${{ "%.2f"|format(total_cost - wallet_balance) }} more
+                        to complete this purchase.</p>
+                    <a href="{{ url_for('pos_dashboard.wallet_dashboard') }}"
+                        class="inline-block bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm font-semibold">
+                        Deposit Funds to Wallet
+                    </a>
+        </div>
+        {% endif %}
+
+        <button type="submit" id="submit-button"
+            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg shadow transition mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
+            {% if wallet_balance < total_cost %}disabled{% endif %}>
+            Pay with Wallet
+        </button>
+        </form>
+    </div>
+</div>
+</div>
+{% endblock %}
+{% endblock %}

@@ -1,0 +1,67 @@
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <!-- Pricing (Simple/External) -->
+    <div class="pricing-fields space-y-4">
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Regular Price ($)</label>
+            <input type="number" step="0.01" name="regular_price" value="{{ product.regular_price if product else '' }}"
+                class="custom-input w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Sale Price ($)</label>
+            <input type="number" step="0.01" name="sale_price" value="{{ product.sale_price if product else '' }}"
+                class="custom-input w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Wholesale Price ($)</label>
+            <input type="number" step="0.01" name="wholesale_price"
+                value="{{ product.wholesale_price if product else '' }}"
+                class="custom-input w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none">
+            <p class="text-xs text-gray-500 mt-1">Price for POS Sellers (B2B)</p>
+        </div>
+    </div>
+
+    <!-- Variable Notice -->
+    <div
+        class="variable-notice hidden col-span-2 p-4 bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 rounded-lg text-sm">
+        <p>Pricing for variable products is managed in the <strong>Variations</strong> tab.</p>
+    </div>
+
+    <!-- External Product Fields -->
+    <div class="external-fields hidden col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Product URL</label>
+            <input type="url" name="external_url" value="{{ product.external_url if product else '' }}"
+                placeholder="https://"
+                class="custom-input w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Button Text</label>
+            <input type="text" name="button_text" value="{{ product.button_text if product else 'Buy Now' }}"
+                class="custom-input w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none">
+        </div>
+    </div>
+
+    <!-- Country Availability -->
+    <div class="col-span-1 md:col-span-2 mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Country Availability</label>
+        <p class="text-xs text-gray-500 mb-3">Leave empty to make available in all countries. Select specific countries
+            to restrict availability.</p>
+
+        <div class="relative">
+            <input type="hidden" name="available_countries" id="available_countries_input"
+                value='{{ product.available_countries|tojson if product and product.available_countries else "" }}'>
+
+            <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-900 h-60 overflow-y-auto"
+                id="country-checkbox-list">
+                <!-- Countries will be populated via JS -->
+            </div>
+
+            <div class="flex gap-2 mt-2">
+                <button type="button" onclick="selectAllCountries()"
+                    class="text-xs text-primary-gold hover:underline">Select All</button>
+                <button type="button" onclick="deselectAllCountries()"
+                    class="text-xs text-red-500 hover:underline">Deselect All</button>
+            </div>
+        </div>
+    </div>
+</div>

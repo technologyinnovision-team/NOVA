@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+
+{% block title %}Blogs - Admin Panel{% endblock %}
+
+{% block page_title %}Blogs{% endblock %}
+
+{% block extra_css %}
+<style>
+    .filter-active {
+        border-bottom: 2px solid #d4af37;
+        color: #d4af37;
+        font-weight: 600;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mb-6 flex items-center justify-between">
+    <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Blog Posts</h2>
+    <div class="flex gap-3">
+        <a href="{{ url_for('blogs.import_posts') }}" class="px-4 py-2 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg transition-colors text-sm">Import WordPress</a>
+        <a href="{{ url_for('blogs.create') }}" class="px-4 py-2 bg-pink hover:bg-pink-dark text-white rounded-lg transition-colors text-sm font-medium">Add New Post</a>
+    </div>
+</div>
+
+<div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm dark:shadow-none transition-theme">
+    <!-- Status Filter Tabs -->
+    <div class="px-6 py-3 border-b border-gray-200 dark:border-gray-800 flex items-center gap-6">
+        <a href="{{ url_for('blogs.list') }}" class="text-sm font-medium {% if not status_filter %}filter-active{% else %}text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white{% endif %} transition-colors">
+            All ({{ total_count }})
+        </a>
+        <a href="{{ url_for('blogs.list', status='published') }}" class="text-sm font-medium {% if status_filter == 'published' %}filter-active{% else %}text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white{% endif %} transition-colors">
+            Published ({{ published_count }})
+        </a>
+        <a href="{{ url_for('blogs.list', status='draft') }}" class="text-sm font-medium {% if status_filter == 'draft' %}filter-active{% else %}text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white{% endif %} transition-colors">
+            Drafts ({{ draft_count }})
+        </a>
+        <a href="{{ url_for('blogs.list', status='private') }}" class="text-sm font-medium {% if status_filter == 'private' %}filter-active{% else %}text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white{% endif %} transition-colors">
+            Private ({{ private_count }})
+        </a>
+    </div>
+
+    <!-- Search Bar -->
+    <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-800">
+        <form method="GET" class="flex gap-3 items-center">
+            <input type="hidden" name="status" value="{{ status_filter }}">
+            <input type="hidden" name="category" value="{{ category_filter }}">
+            
+            <div class="flex-1">
+                <input type="text" id="search" name="search" value="{{ search }}" placeholder="Search blog posts..." class="w-full px-4 py-2.5 bg-white dark:bg-black border border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-theme">
+            </div>
+            <button type="submit" class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-medium">
+                Search
+            </button>
+        </form>
+    </div>
+
+    <!-- Category Filter -->
+    {% if categories %}
+    <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900">
+        <form method="GET" class="flex items-center gap-4">
+            <input type="hidden" name="search" value="{{ search }}">
+            <input type="hidden" name="status" value="{{ status_filter }}">
+            
+            <div>
+                <select name="category" id="category" onchange="this.form.submit()" class="px-4 py-2.5 bg-white dark:bg-black border border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white text-sm focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-theme min-w-[200px]">
+                    <option value="">All Categories</option>
+                    {% for category in categories %}
+                    <option value="{{ category.id }}" {% if category_filter|string == category.id|string %}selected{% endif %}>{{ category.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            {% if category_filter %}
+            <div>
+                <a href="{{ url_for('blogs.list', status=status_filter, search=search) }}" class="px-4 py-2.5 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg transition-colors text-sm">
+                    Clear Filter
+                </a>
+            </div>
+            {% endif %}
+        </form>
+    </div>
+    {% endif %}
+    
+    <!-- Posts Table -->
+    {% if posts %}
+    <div class="overflow-x-auto">
+        <table class="w-full">
+            <thead class="bg-gray-50 dark:bg-gray-800">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Image</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Title</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Author</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Categories</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200 dark:divide-gray-800 bg-white dark:bg-gray-900">
+                {% for post in posts %}
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        {% if post.featured_image %}
+                            <img src="{{ post.featured_image }}" alt="{{ post.title }}" class="w-12 h-12 object-cover rounded border border-gray-200 dark:border-gray-700">
+                        {% else %}
+                            <div class="w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded flex items-center justify-center text-gray-400 dark:text-gray-600 text-xs border border-gray-200 dark:border-gray-700">No Image</div>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="text-sm font-medium text-gray-900 dark:text-white">{{ post.title }}</div>
+                        {% if post.excerpt %}
+                        <div class="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">{{ post.excerpt[:100] }}...</div>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        {{ post.author.username if post.author else 'Unknown' }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        {% for category in post.categories[:3] %}
+                            <span class="px-2 py-1 text-xs rounded-full bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400 mr-1">{{ category.name }}</span>
+                        {% endfor %}
+                        {% if post.categories|length > 3 %}
+                            <span class="text-xs text-gray-400">+{{ post.categories|length - 3 }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        {% if post.published_at %}
+                            {{ post.published_at.strftime('%Y-%m-%d %H:%M') }}
+                        {% else %}
+                            {{ post.created_at.strftime('%Y-%m-%d %H:%M') }}
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 py-1 text-xs rounded-full {% if post.status == 'published' %}bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400{% elif post.status == 'draft' %}bg-yellow-100 dark:bg-yellow-500/20 text-yellow-700 dark:text-yellow-400{% else %}bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400{% endif %}">
+                            {{ post.status|title }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm space-x-2">
+                        <a href="{{ url_for('blogs.edit', id=post.id) }}" class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300">Edit</a>
+                        <form method="POST" action="{{ url_for('blogs.delete', id=post.id) }}" class="inline" onsubmit="return confirm('Are you sure you want to delete this blog post?');">
+                            <button type="submit" class="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Pagination -->
+    {% if pagination.pages > 1 %}
+    <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-800 flex items-center justify-between">
+        <div class="text-sm text-gray-600 dark:text-gray-400">
+            Showing {{ (pagination.page - 1) * pagination.per_page + 1 }} to {{ pagination.page * pagination.per_page if pagination.page * pagination.per_page <= pagination.total else pagination.total }} of {{ pagination.total }} items
+        </div>
+        <div class="flex items-center gap-2">
+            {% if pagination.has_prev %}
+                <a href="{{ url_for('blogs.list', page=1, search=search, status=status_filter, category=category_filter) }}" class="px-3 py-1.5 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg transition-colors text-sm">««</a>
+                <a href="{{ url_for('blogs.list', page=pagination.prev_num, search=search, status=status_filter, category=category_filter) }}" class="px-3 py-1.5 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg transition-colors text-sm">«</a>
+            {% else %}
+                <span class="px-3 py-1.5 bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-600 rounded-lg text-sm cursor-not-allowed">««</span>
+                <span class="px-3 py-1.5 bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-600 rounded-lg text-sm cursor-not-allowed">«</span>
+            {% endif %}
+            
+            <span class="px-3 py-1.5 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium">
+                {{ pagination.page }} of {{ pagination.pages }}
+            </span>
+            
+            {% if pagination.has_next %}
+                <a href="{{ url_for('blogs.list', page=pagination.next_num, search=search, status=status_filter, category=category_filter) }}" class="px-3 py-1.5 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg transition-colors text-sm">»</a>
+                <a href="{{ url_for('blogs.list', page=pagination.pages, search=search, status=status_filter, category=category_filter) }}" class="px-3 py-1.5 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg transition-colors text-sm">»»</a>
+            {% else %}
+                <span class="px-3 py-1.5 bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-600 rounded-lg text-sm cursor-not-allowed">»</span>
+                <span class="px-3 py-1.5 bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-600 rounded-lg text-sm cursor-not-allowed">»»</span>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+    {% else %}
+    <div class="p-12 text-center">
+        <p class="text-gray-600 dark:text-gray-400 mb-4">No blog posts found.</p>
+        <a href="{{ url_for('blogs.create') }}" class="inline-block px-4 py-2 bg-pink hover:bg-pink-dark text-white rounded-lg transition-colors text-sm">Create your first blog post</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+

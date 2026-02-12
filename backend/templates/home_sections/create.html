@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Edit' if section else 'Create' }} Home Section - Admin Panel{% endblock %}
+
+{% block page_title %}{{ 'Edit' if section else 'Create' }} Home Section{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div
+        class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm dark:shadow-none p-6">
+        <form method="POST" class="space-y-6">
+            <!-- Title -->
+            <div>
+                <label for="title" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Section
+                    Title</label>
+                <input type="text" name="title" id="title" required value="{{ section.title if section else '' }}"
+                    class="mt-1 block w-full px-3 py-2 bg-white dark:bg-black border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-gold focus:border-gold sm:text-sm text-gray-900 dark:text-white">
+            </div>
+
+            <!-- Subtitle -->
+            <div>
+                <label for="subtitle" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Subtitle
+                    (Optional)</label>
+                <input type="text" name="subtitle" id="subtitle" value="{{ section.subtitle if section else '' }}"
+                    class="mt-1 block w-full px-3 py-2 bg-white dark:bg-black border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-gold focus:border-gold sm:text-sm text-gray-900 dark:text-white">
+            </div>
+
+            <!-- Section Type -->
+            <div>
+                <label for="section_type" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Section
+                    Type</label>
+                <select name="section_type" id="section_type" required onchange="toggleCategoryField()"
+                    class="mt-1 block w-full px-3 py-2 bg-white dark:bg-black border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-gold focus:border-gold sm:text-sm text-gray-900 dark:text-white">
+                    <option value="">Select Type</option>
+                    <option value="new_arrivals" {% if section and section.section_type=='new_arrivals' %}selected{%
+                        endif %}>New Arrivals</option>
+                    <option value="sale" {% if section and section.section_type=='sale' %}selected{% endif %}>Products
+                        On Sale</option>
+                    <option value="best_selling" {% if section and section.section_type=='best_selling' %}selected{%
+                        endif %}>Best Selling</option>
+                    <option value="deals" {% if section and section.section_type=='deals' %}selected{% endif %}>
+                        Deals / Bundles</option>
+                    <option value="category" {% if section and section.section_type=='category' %}selected{% endif %}>
+                        Single Category</option>
+                </select>
+            </div>
+
+            <!-- Category (conditional) -->
+            <div id="category_field" class="hidden">
+                <label for="category_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Select
+                    Category</label>
+                <select name="category_id" id="category_id"
+                    class="mt-1 block w-full px-3 py-2 bg-white dark:bg-black border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-gold focus:border-gold sm:text-sm text-gray-900 dark:text-white">
+                    <option value="">Select a Category</option>
+                    {% for category in categories %}
+                    <option value="{{ category.id }}" {% if section and section.category_id==category.id %}selected{%
+                        endif %}>{{ category.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Item Limit -->
+            <div>
+                <label for="item_limit" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Number of
+                    Products</label>
+                <input type="number" name="item_limit" id="item_limit" required
+                    value="{{ section.item_limit if section else 12 }}" min="4" max="24"
+                    class="mt-1 block w-full px-3 py-2 bg-white dark:bg-black border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-gold focus:border-gold sm:text-sm text-gray-900 dark:text-white">
+            </div>
+
+            <!-- Hidden Order -->
+            <input type="hidden" name="display_order" value="{{ section.display_order if section else 0 }}">
+
+            <!-- Actions -->
+            <div class="flex justify-end gap-3 pt-4">
+                <a href="{{ url_for('home_sections.list_sections') }}"
+                    class="px-4 py-2 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg transition-colors text-sm font-medium">
+                    Cancel
+                </a>
+                <button type="submit"
+                    class="px-4 py-2 bg-pink hover:bg-pink-dark text-white rounded-lg transition-colors text-sm font-medium">
+                    {{ 'Update' if section else 'Create' }} Section
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function toggleCategoryField() {
+        const type = document.getElementById('section_type').value;
+        const catField = document.getElementById('category_field');
+        const catSelect = document.getElementById('category_id');
+
+        if (type === 'category') {
+            catField.classList.remove('hidden');
+            catSelect.required = true;
+        } else {
+            catField.classList.add('hidden');
+            catSelect.required = false;
+        }
+    }
+
+    // Run on load
+    document.addEventListener('DOMContentLoaded', toggleCategoryField);
+</script>
+{% endblock %}

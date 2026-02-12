@@ -1,0 +1,54 @@
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow sm:rounded-lg overflow-hidden">
+    <div class="px-4 py-5 sm:px-6 border-b border-gray-200 dark:border-gray-700">
+        <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-white">
+            Stitching Services
+        </h3>
+        <p class="mt-1 max-w-2xl text-sm text-gray-500 dark:text-gray-400">
+            Select available stitching options for this product.
+        </p>
+    </div>
+    <div class="px-4 py-5 sm:p-6 space-y-4">
+        {% if stitching_services %}
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {% for service in stitching_services %}
+            <div
+                class="relative flex items-start p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                <div class="flex items-center h-5">
+                    <input id="service_{{ service.id }}" name="stitching_services" value="{{ service.id }}"
+                        type="checkbox" {% if product and service in product.stitching_services %}checked{% endif %}
+                        class="focus:ring-[#d4af37] h-4 w-4 text-[#d4af37] border-gray-300 rounded">
+                </div>
+                <div class="ml-3 text-sm">
+                    <label for="service_{{ service.id }}"
+                        class="font-medium text-gray-700 dark:text-gray-300 select-none cursor-pointer">
+                        {{ service.name }}
+                    </label>
+                    <p class="text-gray-500 dark:text-gray-400">
+                        + PKR {{ "%.2f"|format(service.price) }}
+                    </p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div
+            class="text-center py-4 bg-gray-50 dark:bg-gray-700/30 rounded-lg border border-dashed border-gray-300 dark:border-gray-600">
+            <p class="text-sm text-gray-500 dark:text-gray-400">No stitching services defined globally.</p>
+            <a href="{{ url_for('stitching.list_services') }}"
+                class="text-[#d4af37] hover:text-[#b5952f] text-sm font-medium mt-1 inline-block">Manage Services
+                &rarr;</a>
+        </div>
+        {% endif %}
+
+        <div class="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+            <div class="flex items-center">
+                <input type="checkbox" name="sizing_consultation_required" id="sizing_consultation_required" {% if
+                    product and product.sizing_consultation_required %}checked{% endif %}
+                    class="h-4 w-4 text-[#d4af37] focus:ring-[#d4af37] border-gray-300 rounded">
+                <label for="sizing_consultation_required" class="ml-2 block text-sm text-gray-700 dark:text-gray-300">
+                    Require Sizing Consultation (Product marked as "Consultation Required" for customers)
+                </label>
+            </div>
+        </div>
+    </div>
+</div>

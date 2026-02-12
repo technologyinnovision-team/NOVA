@@ -1,0 +1,371 @@
+{% extends "base.html" %}
+
+{% block title %}My Orders - POS Dashboard{% endblock %}
+
+{% block page_title %}My Orders{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+    <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Order Management</h1>
+    <p class="text-gray-600 dark:text-gray-400 mt-1">View and manage your assigned orders</p>
+</div>
+
+<div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm">
+    <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-800">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">All Orders</h2>
+    </div>
+
+    {% if orders %}
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
+            <thead class="bg-gray-50 dark:bg-gray-800">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Order
+                        #</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                        Customer</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Items
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Total
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                        Assignment Status</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Order
+                        Status</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Date
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
+                        Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200 dark:divide-gray-800 bg-white dark:bg-gray-900">
+                {% for order in orders %}
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{{
+                        order.order_number }}</td>
+                    <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
+                        {{ order.billing_address.get('first_name', '') }} {{ order.billing_address.get('last_name', '')
+                        if order.billing_address else 'N/A' }}<br>
+                        <span class="text-xs text-gray-500">{{ order.billing_address.get('email', 'N/A') if
+                            order.billing_address else 'N/A' }}</span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">{{
+                        order.items|length }} item(s)</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gold font-semibold">${{
+                        "%.2f"|format(order.total) }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        {% if order.assignment_status == 'assigned' %}
+                        <span
+                            class="px-2 py-1 text-xs rounded-full bg-yellow-100 dark:bg-yellow-500/20 text-yellow-700 dark:text-yellow-400">Pending</span>
+                        {% elif order.assignment_status == 'accepted' %}
+                        <span
+                            class="px-2 py-1 text-xs rounded-full bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400">Accepted</span>
+                        {% elif order.assignment_status == 'rejected' %}
+                        <span
+                            class="px-2 py-1 text-xs rounded-full bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400">Rejected</span>
+                        {% else %}
+                        <span
+                            class="px-2 py-1 text-xs rounded-full bg-gray-100 dark:bg-gray-500/20 text-gray-700 dark:text-gray-400">{{
+                            order.assignment_status|title }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span
+                            class="px-2 py-1 text-xs rounded-full bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400">{{
+                            order.status|title }}</span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{
+                        order.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm space-x-2">
+                        <button onclick="viewOrder({{ order.id }})"
+                            class="bg-indigo-600 hover:bg-indigo-700 text-white px-2 py-1 rounded text-xs transition mb-1">View</button>
+                        {% if order.assignment_status == 'assigned' %}
+                        <form action="{{ url_for('pos_dashboard.accept_order', order_id=order.id) }}" method="POST"
+                            class="inline">
+                            <button type="submit"
+                                class="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-xs transition">Accept</button>
+                        </form>
+                        <form action="{{ url_for('pos_dashboard.reject_order', order_id=order.id) }}" method="POST"
+                            class="inline" onsubmit="return confirm('Reject this order?')">
+                            <button type="submit"
+                                class="bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded text-xs transition">Reject</button>
+                        </form>
+                        {% elif order.assignment_status == 'accepted' %}
+                        <div class="flex flex-col space-y-1">
+                            <span class="text-green-600 dark:text-green-400 text-xs font-semibold">Accepted</span>
+
+                            {% if order.status == 'pending' or order.status == 'processing' %}
+                            <form action="{{ url_for('pos_dashboard.update_order_status', order_id=order.id) }}"
+                                method="POST" class="inline">
+                                <input type="hidden" name="status" value="shipped">
+                                <button type="submit"
+                                    class="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs transition w-full">Mark
+                                    Shipped</button>
+                            </form>
+                            {% elif order.status == 'shipped' %}
+                            <form action="{{ url_for('pos_dashboard.update_order_status', order_id=order.id) }}"
+                                method="POST" class="inline">
+                                <input type="hidden" name="status" value="delivered">
+                                <button type="submit"
+                                    class="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-xs transition w-full">Mark
+                                    Delivered</button>
+                            </form>
+                            <span class="text-blue-600 text-xs">Shipped</span>
+                            {% elif order.status == 'completed' or order.status == 'delivered' %}
+                            <span class="text-green-600 text-xs font-bold">Delivered</span>
+                            {% endif %}
+                        </div>
+                        {% elif order.assignment_status == 'completed' or order.assignment_status == 'delivered' %}
+                        <span class="text-green-600 dark:text-green-400 text-xs font-bold flex items-center">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            Completed
+                        </span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="p-12 text-center">
+        <svg class="mx-auto h-12 w-12 text-gray-400 dark:text-gray-600 mb-4" fill="none" stroke="currentColor"
+            viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+            </path>
+        </svg>
+        <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No Orders</h3>
+        <p class="text-gray-600 dark:text-gray-400">You haven't been assigned any orders yet.</p>
+    </div>
+    {% endif %}
+</div>
+
+<a href="{{ url_for('pos_dashboard.dashboard') }}" class="text-blue-600 dark:text-blue-400 hover:underline">
+    ← Back to Dashboard
+</a>
+</div>
+
+<!-- Order Details Modal -->
+<div id="orderModal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog"
+    aria-modal="true">
+    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <!-- Background overlay -->
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"
+            onclick="closeModal()"></div>
+
+        <!-- Modal panel -->
+        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+        <div
+            class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-3xl w-full mx-2 sm:mx-0">
+            <div class="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div class="sm:flex sm:items-start">
+                    <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                        <div
+                            class="flex justify-between items-center mb-4 border-b border-gray-200 dark:border-gray-700 pb-2">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-white" id="modal-title">
+                                Order Details <span id="modalOrderNumber"
+                                    class="text-gray-500 text-sm ml-2 block sm:inline"></span>
+                            </h3>
+                            <button onclick="closeModal()" type="button"
+                                class="text-gray-400 hover:text-gray-500 focus:outline-none">
+                                <span class="sr-only">Close</span>
+                                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        <div id="modalContent" class="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
+                            <!-- Loading State -->
+                            <div id="modalLoading" class="text-center py-4">
+                                <svg class="animate-spin h-8 w-8 text-gray-500 mx-auto"
+                                    xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                        stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor"
+                                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                                    </path>
+                                </svg>
+                                <p class="mt-2 text-sm text-gray-500">Loading order details...</p>
+                            </div>
+
+                            <!-- Error State -->
+                            <div id="modalError" class="hidden text-center py-4 text-red-600">
+                                <p>Failed to load order details.</p>
+                            </div>
+
+                            <!-- Content -->
+                            <div id="modalData" class="hidden text-sm text-gray-600 dark:text-gray-300">
+                                <!-- Status & Date -->
+                                <div
+                                    class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4 bg-gray-50 dark:bg-gray-700/50 p-3 rounded">
+                                    <div class="text-center sm:text-left">
+                                        <p class="text-xs text-gray-500 dark:text-gray-400 uppercase">Status</p>
+                                        <p id="modalStatus"
+                                            class="font-medium text-gray-900 dark:text-white capitalize">-</p>
+                                    </div>
+                                    <div class="text-center sm:text-right">
+                                        <p class="text-xs text-gray-500 dark:text-gray-400 uppercase">Date</p>
+                                        <p id="modalDate" class="font-medium text-gray-900 dark:text-white">-</p>
+                                    </div>
+                                </div>
+
+                                <!-- Customer Info -->
+                                <div class="mb-4">
+                                    <h4 class="font-semibold text-gray-900 dark:text-white mb-2">Customer Information
+                                    </h4>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div class="bg-gray-50 dark:bg-gray-800/50 p-3 rounded">
+                                            <p class="text-xs text-gray-500 uppercase mb-1">Billing Address</p>
+                                            <div id="modalBilling" class="mt-1 break-words"></div>
+                                        </div>
+                                        <div class="bg-gray-50 dark:bg-gray-800/50 p-3 rounded">
+                                            <p class="text-xs text-gray-500 uppercase mb-1">Shipping Address</p>
+                                            <div id="modalShipping" class="mt-1 break-words"></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Items -->
+                                <div class="mb-4">
+                                    <h4 class="font-semibold text-gray-900 dark:text-white mb-2">Order Items</h4>
+                                    <div class="border border-gray-200 dark:border-gray-700 rounded overflow-x-auto">
+                                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                                            <thead class="bg-gray-50 dark:bg-gray-700">
+                                                <tr>
+                                                    <th
+                                                        class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase whitespace-nowrap">
+                                                        Item</th>
+                                                    <th
+                                                        class="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase whitespace-nowrap">
+                                                        Qty</th>
+                                                    <th
+                                                        class="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase whitespace-nowrap">
+                                                        Price</th>
+                                                    <th
+                                                        class="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase whitespace-nowrap">
+                                                        Total</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="modalItems"
+                                                class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                                                <!-- Items injected here -->
+                                            </tbody>
+                                            <tfoot class="bg-gray-50 dark:bg-gray-700">
+                                                <tr>
+                                                    <td colspan="3"
+                                                        class="px-3 py-2 text-right font-medium text-gray-900 dark:text-white">
+                                                        Total</td>
+                                                    <td id="modalTotal"
+                                                        class="px-3 py-2 text-right font-bold text-gray-900 dark:text-white whitespace-nowrap">
+                                                        -</td>
+                                                </tr>
+                                            </tfoot>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-gray-50 dark:bg-gray-700 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                <button type="button"
+                    class="w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700"
+                    onclick="closeModal()">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function viewOrder(orderId) {
+        const modal = document.getElementById('orderModal');
+        const modalLoading = document.getElementById('modalLoading');
+        const modalData = document.getElementById('modalData');
+        const modalError = document.getElementById('modalError');
+
+        // Reset state
+        modal.classList.remove('hidden');
+        modalLoading.classList.remove('hidden');
+        modalData.classList.add('hidden');
+        modalError.classList.add('hidden');
+        document.getElementById('modalOrderNumber').textContent = '';
+
+        // Fetch data
+        fetch(`/pos/orders/${orderId}/details`)
+            .then(response => {
+                if (!response.ok) throw new Error('Network response was not ok');
+                return response.json();
+            })
+            .then(data => {
+                if (data.error) throw new Error(data.error);
+
+                // Populate data
+                document.getElementById('modalOrderNumber').textContent = `#${data.order_number}`;
+                document.getElementById('modalStatus').textContent = data.assignment_status || data.status;
+                document.getElementById('modalDate').textContent = data.created_at;
+
+                // Addresses
+                const formatAddress = (addr) => {
+                    if (!addr || Object.keys(addr).length === 0) return 'N/A';
+                    return `${addr.first_name || ''} ${addr.last_name || ''}<br>${addr.address || ''}<br>${addr.city || ''}, ${addr.state || ''} ${addr.zipCode || ''}<br>${addr.country || ''}<br>${addr.phone || ''}<br>${addr.email || ''}`;
+                };
+                document.getElementById('modalBilling').innerHTML = formatAddress(data.billing_address);
+                document.getElementById('modalShipping').innerHTML = formatAddress(data.shipping_address);
+
+                // Items
+                const itemsBody = document.getElementById('modalItems');
+                itemsBody.innerHTML = '';
+                data.items.forEach(item => {
+                    let details = '';
+                    if (item.variation_details && Object.keys(item.variation_details).length > 0) {
+                        details = `<div class="text-xs text-gray-500 mt-1">${Object.entries(item.variation_details).map(([k, v]) => `${k}: ${v}`).join(', ')}</div>`;
+                    }
+
+                    const row = `
+                        <tr>
+                            <td class="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                                ${item.product_name}
+                                ${details}
+                            </td>
+                            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 text-right">${item.quantity}</td>
+                            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 text-right">$${item.price.toFixed(2)}</td>
+                            <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900 dark:text-white font-medium text-right">$${item.subtotal.toFixed(2)}</td>
+                        </tr>
+                    `;
+                    itemsBody.insertAdjacentHTML('beforeend', row);
+                });
+
+                document.getElementById('modalTotal').textContent = `$${data.total.toFixed(2)}`;
+
+                // Show data
+                modalLoading.classList.add('hidden');
+                modalData.classList.remove('hidden');
+            })
+            .catch(err => {
+                console.error('Error:', err);
+                modalLoading.classList.add('hidden');
+                modalError.classList.remove('hidden');
+            });
+    }
+
+    function closeModal() {
+        document.getElementById('orderModal').classList.add('hidden');
+    }
+
+    // Close on escape key
+    document.addEventListener('keydown', function (event) {
+        if (event.key === "Escape") {
+            closeModal();
+        }
+    });
+</script>
+{% endblock %}

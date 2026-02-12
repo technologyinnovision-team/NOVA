@@ -1,0 +1,76 @@
+<div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+    <div class="border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 px-6 pt-4">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Product Data</h3>
+            <div class="w-1/3">
+                <select id="product_type" name="product_type" onchange="toggleProductType()"
+                    class="custom-input w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none">
+                    <option value="simple" {% if product and product.product_type=='simple' %}selected{% endif %}>Simple
+                        Product</option>
+                    <option value="variable" {% if product and product.product_type=='variable' %}selected{% endif %}>
+                        Variable Product</option>
+                    <option value="external" {% if product and product.product_type=='external' %}selected{% endif %}>
+                        External/Affiliate Product</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="flex overflow-x-auto gap-6 hide-scrollbar">
+            <button type="button"
+                class="tab-button px-1 py-3 text-sm font-medium text-gray-500 whitespace-nowrap active"
+                onclick="openTab(event, 'tab-general')">General</button>
+            <button type="button" class="tab-button px-1 py-3 text-sm font-medium text-gray-500 whitespace-nowrap"
+                onclick="openTab(event, 'tab-inventory')">Inventory</button>
+            <button type="button" class="tab-button px-1 py-3 text-sm font-medium text-gray-500 whitespace-nowrap"
+                onclick="openTab(event, 'tab-shipping')">Shipping</button>
+            <button type="button" class="tab-button px-1 py-3 text-sm font-medium text-gray-500 whitespace-nowrap"
+                onclick="openTab(event, 'tab-linked')">Linked Products</button>
+            <button type="button" class="tab-button px-1 py-3 text-sm font-medium text-gray-500 whitespace-nowrap"
+                onclick="openTab(event, 'tab-attributes')">Attributes</button>
+            <button type="button"
+                class="tab-button px-1 py-3 text-sm font-medium text-gray-500 whitespace-nowrap hidden"
+                id="tab-variations-btn" onclick="openTab(event, 'tab-variations')">Variations</button>
+            <button type="button" class="tab-button px-1 py-3 text-sm font-medium text-gray-500 whitespace-nowrap"
+                onclick="openTab(event, 'tab-seo')">SEO</button>
+        </div>
+    </div>
+
+    <div class="p-6">
+        <!-- Tab: General -->
+        <div id="tab-general" class="tab-content block animate-fadeIn">
+            {% include "products/partials/tabs/general.html" %}
+        </div>
+
+        <!-- Tab: Inventory -->
+        <div id="tab-inventory" class="tab-content hidden animate-fadeIn">
+            {% include "products/partials/tabs/inventory.html" %}
+        </div>
+
+        <!-- Tab: Shipping -->
+        <div id="tab-shipping" class="tab-content hidden animate-fadeIn">
+            {% include "products/partials/tabs/shipping.html" %}
+        </div>
+
+
+
+        <!-- Tab: Linked Products -->
+        <div id="tab-linked" class="tab-content hidden animate-fadeIn">
+            {% include "products/partials/tabs/linked_products.html" %}
+        </div>
+
+        <!-- Tab: Attributes -->
+        <div id="tab-attributes" class="tab-content hidden animate-fadeIn">
+            {% include "products/partials/tabs/attributes.html" %}
+        </div>
+
+        <!-- Tab: Variations -->
+        <div id="tab-variations" class="tab-content hidden animate-fadeIn">
+            {% include "products/partials/tabs/variations.html" %}
+        </div>
+
+        <!-- Tab: SEO -->
+        <div id="tab-seo" class="tab-content hidden animate-fadeIn">
+            {% include "products/partials/tabs/seo.html" %}
+        </div>
+    </div>
+</div>

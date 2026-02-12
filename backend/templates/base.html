@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Admin Panel{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        gold: '#d4af37',
+                        'gold-light': '#f4d03f',
+                        pink: '#CF0F63',
+                        'pink-dark': '#B00D56',
+                    },
+                    transitionProperty: {
+                        'theme': 'background-color, border-color, color',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #969696;
+        }
+
+        .dark ::-webkit-scrollbar-track {
+            background: #000;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #d1d5db;
+            border-radius: 4px;
+        }
+
+        .dark ::-webkit-scrollbar-thumb {
+            background: #333;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #9ca3af;
+        }
+
+        .dark ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        ::selection {
+            background: #d4af37;
+            color: #181818;
+        }
+
+        * {
+            transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+        }
+
+        /* Sidebar Collapsed Styles */
+        #sidebar.collapsed {
+            width: 72px;
+        }
+
+        #sidebar.collapsed .nav-text {
+            opacity: 0;
+            width: 0;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+
+        #sidebar.collapsed #sidebar-title {
+            opacity: 0;
+            width: 0;
+            overflow: hidden;
+        }
+
+        #sidebar.collapsed .nav-link {
+            justify-content: center;
+        }
+
+        #sidebar.collapsed #sidebar-toggle-icon {
+            transform: rotate(180deg);
+        }
+
+        #main-content.sidebar-collapsed {
+            margin-left: 72px;
+        }
+
+        .nav-text {
+            transition: opacity 0.3s ease, width 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .nav-link {
+            position: relative;
+        }
+
+        #sidebar.collapsed .nav-link:hover::after {
+            content: attr(title);
+            position: absolute;
+            left: 100%;
+            margin-left: 12px;
+            padding: 8px 12px;
+            background: #1f1f1f;
+            border: 1px solid #333;
+            border-radius: 6px;
+            white-space: nowrap;
+            z-index: 1000;
+            font-size: 14px;
+            color: #fff;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            pointer-events: none;
+        }
+
+        /* Mobile Responsive Styles */
+        @media (max-width: 1023px) {
+            #sidebar {
+                transform: translateX(-100%);
+                z-index: 100;
+            }
+
+            #sidebar.mobile-open {
+                transform: translateX(0);
+            }
+
+            #sidebar-backdrop {
+                display: block;
+            }
+
+            #main-content {
+                margin-left: 0 !important;
+                padding: 1rem;
+            }
+
+            #main-content.sidebar-collapsed {
+                margin-left: 0 !important;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            #sidebar {
+                transform: translateX(0) !important;
+            }
+
+            #sidebar-backdrop {
+                display: none !important;
+            }
+        }
+
+        #sidebar-backdrop {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 90;
+            transition: opacity 0.3s ease;
+        }
+
+        #sidebar-backdrop.active {
+            display: block;
+            opacity: 1;
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+
+<body class="bg-[#efeaea] dark:bg-[#181818] text-gray-900 dark:text-white font-sans antialiased transition-theme">
+    {% if current_user %}
+    <!-- Sidebar Backdrop -->
+    <div id="sidebar-backdrop" class="lg:hidden"></div>
+
+    <div class="flex min-h-screen bg-[#efeaea] dark:bg-[#181818] transition-theme">
+        <!-- Sidebar -->
+        <aside id="sidebar"
+            class="fixed left-0 top-0 h-screen w-64 bg-[#1f1f1f] dark:bg-[#1f1f1f] border-r border-gray-800 dark:border-gray-800 z-50 flex flex-col shadow-lg dark:shadow-none transition-all duration-300 ease-in-out">
+            <div class="p-4 border-b border-gray-800 dark:border-gray-800 flex items-center justify-between">
+                <div id="sidebar-title"
+                    class="text-xl font-bold bg-gradient-to-r from-gold to-gold-light bg-clip-text text-transparent transition-opacity duration-300">
+                    {% if current_user.pos_profile %}POS Dashboard{% else %}Admin Panel{% endif %}
+                </div>
+                <button id="sidebar-toggle"
+                    class="p-1.5 rounded-lg hover:bg-gray-800 dark:hover:bg-gray-800 text-gray-300 dark:text-gray-400 hover:text-white transition-colors"
+                    aria-label="Toggle sidebar">
+                    <svg id="sidebar-toggle-icon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M11 19l-7-7 7-7m8 14l-7-7 7-7"></path>
+                    </svg>
+                </button>
+            </div>
+
+            {% if current_user.pos_profile %}
+            <!-- POS Seller Navigation -->
+            <nav class="flex-1 overflow-y-auto px-3 py-4 space-y-1">
+                <!-- Dashboard -->
+                <a href="{{ url_for('pos_dashboard.dashboard') }}"
+                    class="nav-link flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group {% if request.endpoint == 'pos_dashboard.dashboard' %}bg-gold text-white shadow-md{% else %}text-gray-400 hover:text-white hover:bg-white/5{% endif %}"
+                    title="Dashboard">
+                    <svg class="w-5 h-5 flex-shrink-0 transition-colors" fill="none" stroke="currentColor"
+                        viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                    </svg>
+                    <span class="nav-text">Dashboard</span>
+                </a>
+
+                <!-- Orders -->
+                <a href="{{ url_for('pos_dashboard.orders') }}"
+                    class="nav-link flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group {% if request.endpoint == 'pos_dashboard.orders' %}bg-gold text-white shadow-md{% else %}text-gray-400 hover:text-white hover:bg-white/5{% endif %}"
+                    title="My Orders">
+                    <svg class="w-5 h-5 flex-shrink-0 transition-colors" fill="none" stroke="currentColor"
+                        viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span class="nav-text">My Orders</span>
+                </a>
+
+                <!-- Inventory -->
+                <a href="{{ url_for('pos_dashboard.inventory') }}"
+                    class="nav-link flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group {% if request.endpoint == 'pos_dashboard.inventory' %}bg-gold text-white shadow-md{% else %}text-gray-400 hover:text-white hover:bg-white/5{% endif %}"
+                    title="My Inventory">
+                    <svg class="w-5 h-5 flex-shrink-0 transition-colors" fill="none" stroke="currentColor"
+                        viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                    </svg>
+                    <span class="nav-text">My Inventory</span>
+                </a>
+
+                <!-- Wallet -->
+                <a href="{{ url_for('pos_dashboard.wallet_dashboard') }}"
+                    class="nav-link flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group {% if request.endpoint == 'pos_dashboard.wallet_dashboard' %}bg-gold text-white shadow-md{% else %}text-gray-400 hover:text-white hover:bg-white/5{% endif %}"
+                    title="My Wallet">
+                    <svg class="w-5 h-5 flex-shrink-0 transition-colors" fill="none" stroke="currentColor"
+                        viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                    </svg>
+                    <span class="nav-text">My Wallet</span>
+                </a>
+
+                <!-- Wholesale Catalog -->
+                <a href="{{ url_for('pos_dashboard.wholesale_catalog') }}"
+                    class="nav-link flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group {% if request.endpoint == 'pos_dashboard.wholesale_catalog' %}bg-gold text-white shadow-md{% else %}text-gray-400 hover:text-white hover:bg-white/5{% endif %}"
+                    title="Wholesale Catalog">
+                    <svg class="w-5 h-5 flex-shrink-0 transition-colors" fill="none" stroke="currentColor"
+                        viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                    </svg>
+                </a>
+
+                <!-- Profile Link -->
+                <a href="{{ url_for('pos_dashboard.profile') }}"
+                    class="nav-link flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group {% if request.endpoint == 'pos_dashboard.profile' %}bg-gold text-white shadow-md{% else %}text-gray-400 hover:text-white hover:bg-white/5{% endif %}"
+                    title="Shop Profile">
+                    <svg class="w-5 h-5 flex-shrink-0 transition-colors" fill="none" stroke="currentColor"
+                        viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                    </svg>
+                    <span class="nav-text">Shop Profile</span>
+                </a>
+            </nav>
+
+            {% else %}
+            <!-- Admin Navigation (Full Menu) -->
+            <nav class="flex-1 overflow-y-auto px-3 py-4 space-y-1">
+                <!-- Dashboard -->
+                <a href="{{ url_for('dashboard.index') }}"
+                    class="nav-link flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group {% if request.endpoint == 'dashboard.index' %}bg-gold text-white shadow-md{% else %}text-gray-400 hover:text-white hover:bg-white/5{% endif %}"
+                    title="Dashboard">
+                    <svg class="w-5 h-5 flex-shrink-0 transition-colors" fill="none" stroke="currentColor"
+                        viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                    </svg>
+                    <span class="nav-text">Dashboard</span>
+                </a>
+
+                <!-- Products Group -->
+                {% set products_active = request.endpoint and (request.endpoint.startswith('products.') or
+                request.endpoint.startswith('categories.')) %}
+                <div class="nav-group">
+                    <button type="button" onclick="toggleSubmenu('submenu-products', this)"
+                        class="nav-link w-full flex items-center justify-between px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group {% if products_active %}text-white bg-white/5{% else %}text-gray-400 hover:text-white hover:bg-white/5{% endif %}"
+                        title="Products">
+                        <div class="flex items-center gap-3">
+                            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                            </svg>
+                            <span class="nav-text">Products</span>
+                        </div>
+                        <svg class="w-4 h-4 transition-transform duration-200 submenu-arrow {% if products_active %}rotate-180{% endif %} nav-text"
+                            fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </button>
+                    <div id="submenu-products"
+                        class="overflow-hidden transition-all duration-300 {% if not products_active %}hidden{% endif %} space-y-1 mt-1 pl-11 pr-2">
+                        <a href="{{ url_for('products.list') }}"
+                            class="block px-3 py-2 text-sm rounded-lg transition-colors {% if request.endpoint == 'products.list' %}text-gold bg-gold/10{% else %}text-gray-400 hover:text-white hover:bg-white/5{% endif %}">
+                            All Products
+                        </a>
+                        <a href="{{ url_for('products.create') }}"
+                            class="block px-3 py-2 text-sm rounded-lg transition-colors {% if request.endpoint == 'products.create' %}text-gold bg-gold/10{% else %}text-gray-400 hover:text-white hover:bg-white/5{% endif %}">
+                            Add New
+                        </a>
+                        <a href="{{ url_for('categories.list') }}"
+                            class="block px-3 py-2 text-sm rounded-lg transition-colors {% if request.endpoint and request.endpoint.startswith('categories.') %}text-gold bg-gold/10{% else %}text-gray-400 hover:text-white hover:bg-white/5{% endif %}">
+                            Categories
+                        </a>
+                        <a href="{{ url_for('products.stocks') }}"
+                            class="block px-3 py-2 text-sm rounded-lg transition-colors {% if request.endpoint == 'products.stocks' %}text-gold bg-gold/10{% else %}text-gray-400 hover:text-white hover:bg-white/5{% endif %}">
+                            Stocks
+                        </a>
+                        <a href="{{ url_for('products.import_csv') }}"
+                            class="block px-3 py-2 text-sm rounded-lg transition-colors {% if request.endpoint == 'products.import_csv' %}text-gold bg-gold/10{% else %}text-gray-400 hover:text-white hover:bg-white/5{% endif %}">
+                            Import CSV
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Sales Group -->
+                {% set sales_active = request.endpoint and (request.endpoint.startswith('orders.') or
+                request.endpoint.startswith('deals_admin.') or request.endpoint.startswith('coupons.')) %}
+                <div class="nav-group">
+                    <button type="button" onclick="toggleSubmenu('submenu-sales', this)"
+                        class="nav-link w-full flex items-center justify-between px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group {% if sales_active %}text-white bg-white/5{% else %}text-gray-400 hover:text-white hover:bg-white/5{% endif %}"
+                        title="Sales & Promotions">
+                        <div class="flex items-center gap-3">
+                            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                            </svg>
+                            <span class="nav-text">Sales</span>
+                        </div>
+                        <svg class="w-4 h-4 transition-transform duration-200 submenu-arrow {% if sales_active %}rotate-180{% endif %} nav-text"
+                            fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </button>
+                    <div id="submenu-sales"
+                        class="overflow-hidden transition-all duration-300 {% if not sales_active %}hidden{% endif %} space-y-1 mt-1 pl-11 pr-2">
+                        <a href="{{ url_for('orders.list') }}"
+                            class="block px-3 py-2 text-sm rounded-lg transition-colors {% if request.endpoint and request.endpoint.startswith('orders.') %}text-gold bg-gold/10{% else %}text-gray-400 hover:text-white hover:bg-white/5{% endif %}">
+                            Orders
+                        </a>
+                        <a href="{{ url_for('deals_admin.list_deals') }}"
+                            class="block px-3 py-2 text-sm rounded-lg transition-colors {% if request.endpoint and request.endpoint.startswith('deals_admin.') %}text-gold bg-gold/10{% else %}text-gray-400 hover:text-white hover:bg-white/5{% endif %}">
+                            Deals
+                        </a>
+                        <a href="{{ url_for('coupons.list') }}"
+                            class="block px-3 py-2 text-sm rounded-lg transition-colors {% if request.endpoint and request.endpoint.startswith('coupons.') %}text-gold bg-gold/10{% else %}text-gray-400 hover:text-white hover:bg-white/5{% endif %}">
+                            Coupons
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Customers (Single) -->
+                <a href="{{ url_for('customers.list') }}"
+                    class="nav-link flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group {% if request.endpoint and request.endpoint.startswith('customers.') %}bg-gold text-white shadow-md{% else %}text-gray-400 hover:text-white hover:bg-white/5{% endif %}"
+                    title="Customers">
+                    <svg class="w-5 h-5 flex-shrink-0 transition-colors" fill="none" stroke="currentColor"
+                        viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                    </svg>
+                    <span class="nav-text">Customers</span>
+                </a>
+
+                <!-- Users (Admin/Staff) -->
+                <a href="{{ url_for('users.list_users') }}"
+                    class="nav-link flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group {% if request.endpoint and request.endpoint.startswith('users.') %}bg-gold text-white shadow-md{% else %}text-gray-400 hover:text-white hover:bg-white/5{% endif %}"
+                    title="Users management">
+                    <svg class="w-5 h-5 flex-shrink-0 transition-colors" fill="none" stroke="currentColor"
+                        viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                    </svg>
+                    <span class="nav-text">Users</span>
+                </a>
+
+                <!-- Content Group -->
+                {% set content_active = request.endpoint and (request.endpoint.startswith('blogs.') or
+                request.endpoint.startswith('media.') or request.endpoint.startswith('file_manager.') or
+                request.endpoint.startswith('home_sections.')) %}
+                <div class="nav-group">
+                    <button type="button" onclick="toggleSubmenu('submenu-content', this)"
+                        class="nav-link w-full flex items-center justify-between px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group {% if content_active %}text-white bg-white/5{% else %}text-gray-400 hover:text-white hover:bg-white/5{% endif %}"
+                        title="Content Management">
+                        <div class="flex items-center gap-3">
+                            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            <span class="nav-text">Content</span>
+                        </div>
+                        <svg class="w-4 h-4 transition-transform duration-200 submenu-arrow {% if content_active %}rotate-180{% endif %} nav-text"
+                            fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </button>
+                    <div id="submenu-content"
+                        class="overflow-hidden transition-all duration-300 {% if not content_active %}hidden{% endif %} space-y-1 mt-1 pl-11 pr-2">
+                        <a href="{{ url_for('blogs.list') }}"
+                            class="block px-3 py-2 text-sm rounded-lg transition-colors {% if request.endpoint and request.endpoint.startswith('blogs.') %}text-gold bg-gold/10{% else %}text-gray-400 hover:text-white hover:bg-white/5{% endif %}">
+                            Blogs
+                        </a>
+                        <a href="{{ url_for('media.list_media') }}"
+                            class="block px-3 py-2 text-sm rounded-lg transition-colors {% if request.endpoint and request.endpoint.startswith('media.') %}text-gold bg-gold/10{% else %}text-gray-400 hover:text-white hover:bg-white/5{% endif %}">
+                            Media Library
+                        </a>
+                        <a href="{{ url_for('file_manager.index') }}"
+                            class="block px-3 py-2 text-sm rounded-lg transition-colors {% if request.endpoint and request.endpoint.startswith('file_manager.') %}text-gold bg-gold/10{% else %}text-gray-400 hover:text-white hover:bg-white/5{% endif %}">
+                            File Manager
+                        </a>
+                        <a href="{{ url_for('home_sections.list_sections') }}"
+                            class="block px-3 py-2 text-sm rounded-lg transition-colors {% if request.endpoint and request.endpoint.startswith('home_sections.') %}text-gold bg-gold/10{% else %}text-gray-400 hover:text-white hover:bg-white/5{% endif %}">
+                            Home Sections
+                        </a>
+                    </div>
+                </div>
+
+                <!-- System Group -->
+                {% set system_active = request.endpoint and (request.endpoint.startswith('settings.') or
+                request.endpoint.startswith('shipping.') or request.endpoint.startswith('payments.') or
+                request.endpoint.startswith('integrations.') or request.endpoint.startswith('api_keys.') or
+                request.endpoint.startswith('backups.')) %}
+                <div class="nav-group">
+                    <button type="button" onclick="toggleSubmenu('submenu-system', this)"
+                        class="nav-link w-full flex items-center justify-between px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group {% if system_active %}text-white bg-white/5{% else %}text-gray-400 hover:text-white hover:bg-white/5{% endif %}"
+                        title="System">
+                        <div class="flex items-center gap-3">
+                            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            <span class="nav-text">System</span>
+                        </div>
+                        <svg class="w-4 h-4 transition-transform duration-200 submenu-arrow {% if system_active %}rotate-180{% endif %} nav-text"
+                            fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </button>
+                    <div id="submenu-system"
+                        class="overflow-hidden transition-all duration-300 {% if not system_active %}hidden{% endif %} space-y-1 mt-1 pl-11 pr-2">
+                        <a href="{{ url_for('settings.general') }}"
+                            class="block px-3 py-2 text-sm rounded-lg transition-colors {% if request.endpoint and request.endpoint.startswith('settings.') %}text-gold bg-gold/10{% else %}text-gray-400 hover:text-white hover:bg-white/5{% endif %}">
+                            Settings
+                        </a>
+                        <a href="{{ url_for('shipping_admin.zones') }}"
+                            class="block px-3 py-2 text-sm rounded-lg transition-colors {% if request.endpoint and request.endpoint.startswith('shipping_admin.') %}text-gold bg-gold/10{% else %}text-gray-400 hover:text-white hover:bg-white/5{% endif %}">
+                            Shipping
+                        </a>
+                        <a href="{{ url_for('payments.gateways') }}"
+                            class="block px-3 py-2 text-sm rounded-lg transition-colors {% if request.endpoint and request.endpoint.startswith('payments.') %}text-gold bg-gold/10{% else %}text-gray-400 hover:text-white hover:bg-white/5{% endif %}">
+                            Payments
+                        </a>
+                        <a href="{{ url_for('integrations.config') }}"
+                            class="block px-3 py-2 text-sm rounded-lg transition-colors {% if request.endpoint and request.endpoint.startswith('integrations.') %}text-gold bg-gold/10{% else %}text-gray-400 hover:text-white hover:bg-white/5{% endif %}">
+                            Integrations
+                        </a>
+                        <a href="{{ url_for('api_keys.list') }}"
+                            class="block px-3 py-2 text-sm rounded-lg transition-colors {% if request.endpoint and request.endpoint.startswith('api_keys.') %}text-gold bg-gold/10{% else %}text-gray-400 hover:text-white hover:bg-white/5{% endif %}">
+                            API Keys
+                        </a>
+                        <a href="{{ url_for('backups.index') }}"
+                            class="block px-3 py-2 text-sm rounded-lg transition-colors {% if request.endpoint and request.endpoint.startswith('backups.') %}text-gold bg-gold/10{% else %}text-gray-400 hover:text-white hover:bg-white/5{% endif %}">
+                            Backups
+                        </a>
+
+                    </div>
+                </div>
+            </nav>
+            {% endif %}
+            <div class="p-4 border-t border-gray-800 dark:border-gray-800">
+                <div id="sidebar-footer"
+                    class="flex items-center justify-between text-xs text-gray-400 dark:text-gray-500 transition-opacity duration-300">
+                    <span class="text-gray-300 dark:text-gray-400 nav-text">{{ current_user.username }}</span>
+                    <a href="{{ url_for('auth.logout') }}"
+                        class="text-pink hover:text-pink-dark transition-colors nav-text" title="Logout">Logout</a>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main id="main-content" class="flex-1 lg:ml-64 p-4 lg:p-6 transition-all duration-300 ease-in-out">
+            <!-- Header -->
+            <div class="mb-4 lg:mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
+                <div class="flex items-center gap-3">
+                    <!-- Mobile Hamburger Menu -->
+                    <button id="mobile-menu-toggle"
+                        class="lg:hidden p-2 rounded-lg bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors"
+                        aria-label="Toggle menu">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 6h16M4 12h16M4 18h16"></path>
+                        </svg>
+                    </button>
+                    <h1 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{% block page_title
+                        %}Dashboard{% endblock %}</h1>
+                </div>
+                <div class="flex items-center gap-2 sm:gap-3">
+                    <!-- Theme Toggle -->
+                    <button id="theme-toggle" type="button"
+                        class="p-2 rounded-lg bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors"
+                        aria-label="Toggle theme">
+                        <svg id="theme-icon-dark" class="w-5 h-5 hidden dark:block" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z">
+                            </path>
+                        </svg>
+                        <svg id="theme-icon-light" class="w-5 h-5 block dark:hidden" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z">
+                            </path>
+                        </svg>
+                    </button>
+                    <a href="{{ url_for('auth.change_password') }}"
+                        class="px-3 py-1.5 text-xs sm:text-sm bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg transition-colors whitespace-nowrap">Change
+                        Password</a>
+                </div>
+            </div>
+
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            <div class="mb-6 space-y-2 flash-messages-container">
+                {% for category, message in messages %}
+                <div
+                    class="flash-message px-4 py-3 rounded-lg {% if category == 'error' %}bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400 border border-red-300 dark:border-red-500/30{% elif category == 'success' %}bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400 border border-green-300 dark:border-green-500/30{% elif category == 'info' %}bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400 border border-blue-300 dark:border-blue-500/30{% else %}bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-700{% endif %} transition-theme">
+                    {{ message }}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% endwith %}
+
+            <!-- Page Content -->
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+    {% else %}
+    {% block auth_content %}{% endblock %}
+    {% endif %}
+
+    <script>
+        function toggleSubmenu(id, button) {
+            const submenu = document.getElementById(id);
+            const arrow = button.querySelector('.submenu-arrow');
+
+            if (submenu.classList.contains('hidden')) {
+                // Open
+                submenu.classList.remove('hidden');
+                if (arrow) arrow.classList.add('rotate-180');
+
+                // Close other submenus (optional, for accordion style)
+                // document.querySelectorAll('[id^="submenu-"]').forEach(el => {
+                //     if (el.id !== id && !el.classList.contains('hidden')) el.classList.add('hidden');
+                // });
+            } else {
+                // Close
+                submenu.classList.add('hidden');
+                if (arrow) arrow.classList.remove('rotate-180');
+            }
+        }
+    </script>
+    <script>
+        // Theme Toggle Functionality
+        (function () {
+            const themeToggle = document.getElementById('theme-toggle');
+            const html = document.documentElement;
+
+            // Get saved theme or default to dark
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+
+            // Apply saved theme
+            if (savedTheme === 'light') {
+                html.classList.remove('dark');
+            } else {
+                html.classList.add('dark');
+            }
+
+            // Theme toggle handler
+            if (themeToggle) {
+                themeToggle.addEventListener('click', () => {
+                    html.classList.toggle('dark');
+                    const isDark = html.classList.contains('dark');
+                    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+                });
+            }
+        })();
+
+        // Auto-dismiss alerts - only target flash messages
+        document.addEventListener('DOMContentLoaded', function () {
+            const flashMessages = document.querySelectorAll('.flash-message');
+            flashMessages.forEach(alert => {
+                setTimeout(() => {
+                    alert.style.opacity = '0';
+                    alert.style.transition = 'opacity 0.3s';
+                    setTimeout(() => {
+                        if (alert.parentElement) {
+                            alert.remove();
+                        }
+                    }, 300);
+                }, 5000);
+            });
+
+            // Sidebar Toggle Functionality
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('main-content');
+            const sidebarToggle = document.getElementById('sidebar-toggle');
+            const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+            const sidebarBackdrop = document.getElementById('sidebar-backdrop');
+
+            // Check if mobile view
+            const isMobile = () => window.innerWidth < 1024;
+
+            // Load saved sidebar state (desktop only)
+            const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+            if (isCollapsed && !isMobile()) {
+                sidebar.classList.add('collapsed');
+                mainContent.classList.add('sidebar-collapsed');
+            }
+
+            // Close mobile sidebar
+            const closeMobileSidebar = () => {
+                sidebar.classList.remove('mobile-open');
+                if (sidebarBackdrop) {
+                    sidebarBackdrop.classList.remove('active');
+                    document.body.style.overflow = '';
+                }
+            };
+
+            // Open mobile sidebar
+            const openMobileSidebar = () => {
+                sidebar.classList.add('mobile-open');
+                if (sidebarBackdrop) {
+                    sidebarBackdrop.classList.add('active');
+                    document.body.style.overflow = 'hidden';
+                }
+            };
+
+            // Desktop sidebar toggle (collapse/expand)
+            if (sidebarToggle) {
+                sidebarToggle.addEventListener('click', () => {
+                    if (!isMobile()) {
+                        sidebar.classList.toggle('collapsed');
+                        mainContent.classList.toggle('sidebar-collapsed');
+                        const isNowCollapsed = sidebar.classList.contains('collapsed');
+                        localStorage.setItem('sidebarCollapsed', isNowCollapsed.toString());
+                    }
+                });
+            }
+
+            // Mobile menu toggle
+            if (mobileMenuToggle) {
+                mobileMenuToggle.addEventListener('click', () => {
+                    if (sidebar.classList.contains('mobile-open')) {
+                        closeMobileSidebar();
+                    } else {
+                        openMobileSidebar();
+                    }
+                });
+            }
+
+            // Close sidebar on backdrop click
+            if (sidebarBackdrop) {
+                sidebarBackdrop.addEventListener('click', () => {
+                    closeMobileSidebar();
+                });
+            }
+
+            // Close sidebar on nav link click (mobile)
+            const navLinks = document.querySelectorAll('.nav-link');
+            navLinks.forEach(link => {
+                link.addEventListener('click', () => {
+                    if (isMobile()) {
+                        closeMobileSidebar();
+                    }
+                });
+            });
+
+            // Handle window resize
+            let resizeTimeout;
+            window.addEventListener('resize', () => {
+                clearTimeout(resizeTimeout);
+                resizeTimeout = setTimeout(() => {
+                    if (!isMobile()) {
+                        closeMobileSidebar();
+                        // Restore desktop sidebar state
+                        if (isCollapsed) {
+                            sidebar.classList.add('collapsed');
+                            mainContent.classList.add('sidebar-collapsed');
+                        } else {
+                            sidebar.classList.remove('collapsed');
+                            mainContent.classList.remove('sidebar-collapsed');
+                        }
+                    } else {
+                        // On mobile, ensure sidebar is hidden by default
+                        sidebar.classList.remove('collapsed', 'mobile-open');
+                        mainContent.classList.remove('sidebar-collapsed');
+                    }
+                }, 250);
+            });
+        });
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+
+</html>

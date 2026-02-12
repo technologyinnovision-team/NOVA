@@ -1,0 +1,430 @@
+<script>
+    // Tab Switching Logic
+    function openTab(evt, tabName) {
+        var i, tabcontent, tablinks;
+        tabcontent = document.getElementsByClassName("tab-content");
+        for (i = 0; i < tabcontent.length; i++) {
+            tabcontent[i].classList.add("hidden");
+        }
+        tablinks = document.getElementsByClassName("tab-button");
+        for (i = 0; i < tablinks.length; i++) {
+            tablinks[i].classList.remove("active");
+        }
+        document.getElementById(tabName).classList.remove("hidden");
+        evt.currentTarget.classList.add("active");
+
+        // Persist tab selection
+        sessionStorage.setItem('active_product_tab', tabName);
+    }
+
+    // Toggle Product Type Logic
+    function toggleProductType() {
+        const type = document.getElementById('product_type').value;
+        const pricing = document.querySelectorAll('.pricing-fields');
+        const inventory = document.querySelectorAll('.inventory-fields');
+        const variableNotice = document.querySelectorAll('.variable-notice');
+        const externalFields = document.querySelectorAll('.external-fields');
+        const varTabBtn = document.getElementById('tab-variations-btn');
+
+        // Helper to toggle visibility and disabled state
+        const toggleSection = (elements, show) => {
+            elements.forEach(el => {
+                if (show) {
+                    el.classList.remove('hidden');
+                    el.querySelectorAll('input, select, textarea').forEach(input => input.disabled = false);
+                } else {
+                    el.classList.add('hidden');
+                    el.querySelectorAll('input, select, textarea').forEach(input => input.disabled = true);
+                }
+            });
+        };
+
+        // Reset All First (Hide everything that could be toggled)
+        toggleSection(variableNotice, false);
+        toggleSection(externalFields, false);
+        varTabBtn.classList.add('hidden');
+
+        // Default: Show Pricing & Inventory
+        // We handle pricing/inventory separately because they toggle intuitively
+        if (type === 'variable') {
+            toggleSection(pricing, false);
+            toggleSection(inventory, false);
+            toggleSection(variableNotice, true);
+            varTabBtn.classList.remove('hidden');
+        } else if (type === 'external') {
+            toggleSection(pricing, true);
+            toggleSection(inventory, true);
+            toggleSection(externalFields, true);
+        } else {
+            // Simple
+            toggleSection(pricing, true);
+            toggleSection(inventory, true);
+        }
+    }
+
+    // Dynamic Attribute Rows
+    function addAttributeRow() {
+        const container = document.getElementById('attributes-container');
+        const div = document.createElement('div');
+        div.className = 'attribute-row border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-900 relative group animate-fadeIn mt-2';
+        div.innerHTML = `
+            <button type="button" onclick="this.closest('.attribute-row').remove()" class="absolute top-2 right-2 text-gray-400 hover:text-red-500 transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-1">Name</label>
+                    <input type="text" name="attr_name[]" placeholder="e.g. Color" class="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md">
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-xs font-medium text-gray-500 mb-1">Values (comma separated)</label>
+                    <input type="text" name="attr_values[]" placeholder="e.g. Red, Blue, Green" class="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md">
+                </div>
+                <div class="flex flex-col justify-end space-y-2">
+                    <label class="flex items-center gap-2">
+                        <input type="hidden" name="attr_visible_idx[]" value="1">
+                        <input type="checkbox" name="attr_visible[]" value="1" checked class="rounded border-gray-300 text-primary-gold" onchange="this.previousElementSibling.value = this.checked ? '1' : '0'">
+                        <span class="text-sm text-gray-600 dark:text-gray-400">Visible</span>
+                    </label>
+                    <label class="flex items-center gap-2">
+                        <input type="hidden" name="attr_use_for_variations_idx[]" value="0">
+                        <input type="checkbox" name="attr_use_for_variations[]" value="1" class="rounded border-gray-300 text-primary-gold" onchange="this.previousElementSibling.value = this.checked ? '1' : '0'">
+                        <span class="text-sm text-gray-600 dark:text-gray-400">Used for variations</span>
+                    </label>
+                </div>
+            </div>
+        `;
+        container.appendChild(div);
+    }
+
+    // Manual Variation Row
+    function addVariationRow() {
+        const container = document.getElementById('variations-container');
+        const div = document.createElement('div');
+        div.className = 'variation-row border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-900 relative mt-2 animate-fadeIn';
+        div.innerHTML = `
+            <button type="button" onclick="this.closest('.variation-row').remove()" class="absolute top-2 right-2 text-gray-400 hover:text-red-500">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+            <div class="grid grid-cols-2 md:grid-cols-6 gap-4">
+                 <div class="col-span-2 md:col-span-2">
+                    <label class="block text-xs font-medium text-gray-500 mb-1">Attr Combination</label>
+                    <input type="text" name="variation_attributes[]" placeholder="Color:Red | Size:M" class="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-1">SKU</label>
+                    <input type="text" name="variation_sku[]" class="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-1">Price</label>
+                    <input type="number" step="0.01" name="variation_regular_price[]" class="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md text-sm mb-1" placeholder="Regular">
+                    <input type="number" step="0.01" name="variation_wholesale_price[]" class="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md text-sm" placeholder="Wholesale">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-1">Stock</label>
+                    <input type="number" name="variation_stock[]" class="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md text-sm">
+                </div>
+            </div>
+        `;
+        container.appendChild(div);
+    }
+
+    // Generate Variations (AJAX) - Requires productId
+    function generateVariations(productId) {
+        if (!productId) {
+            alert("Please save the product first to generate variations automatically.");
+            return;
+        }
+
+        fetch(`/admin/products/${productId}/generate-variations`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                } else {
+                    location.reload(); // Simple reload to show new variations
+                }
+            })
+            .catch(err => alert("Error generating variations"));
+    }
+
+    // Image Upload & Preview with DataTransfer
+    const dt = new DataTransfer();
+
+    document.getElementById('image-upload-area')?.addEventListener('click', () => document.getElementById('images').click());
+
+    function handleImageSelect(event) {
+        if (!event.target.files) return;
+
+        // Add new files to DataTransfer
+        Array.from(event.target.files).forEach(file => {
+            dt.items.add(file);
+        });
+
+        // Sync input with DataTransfer
+        document.getElementById('images').files = dt.files;
+
+        renderNewPreviews();
+    }
+
+    function renderNewPreviews() {
+        const grid = document.getElementById('image-preview-grid');
+
+        // Remove only the new previews (keep existing DB images)
+        grid.querySelectorAll('.new-image-preview').forEach(el => el.remove());
+
+        Array.from(dt.files).forEach((file, index) => {
+            // Create placeholder immediately to preserve order
+            const div = document.createElement('div');
+            div.className = 'relative group rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 animate-fadeIn new-image-preview';
+
+            // Initial content (loading state)
+            div.innerHTML = `
+                <div class="w-full h-32 bg-gray-50 dark:bg-gray-800 flex items-center justify-center">
+                    <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-gold"></div>
+                </div>
+            `;
+            grid.appendChild(div);
+
+            // Read file
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                div.innerHTML = `
+                    <img src="${e.target.result}" class="w-full h-32 object-cover">
+                    <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                        <button type="button" onclick="removeNewFile(${index})" class="text-white bg-red-500 p-1.5 rounded-full hover:bg-red-600 shadow-md" title="Remove">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        </button>
+                    </div>
+                `;
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function removeNewFile(index) {
+        dt.items.remove(index);
+        document.getElementById('images').files = dt.files;
+        renderNewPreviews();
+    }
+
+    function markImageForDeletion(imageId) {
+        const input = document.getElementById('delete_images');
+        let current = input.value ? input.value.split(',') : [];
+        if (!current.includes(String(imageId))) {
+            current.push(imageId);
+        }
+        input.value = current.join(',');
+
+        const el = document.getElementById('image-' + imageId);
+        if (el) el.remove();
+    }
+
+    // Slug Generation
+    document.getElementById('title').addEventListener('input', function () {
+        const slugInput = document.getElementById('slug');
+        if (!slugInput.value) {
+            slugInput.value = this.value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+        }
+    });
+
+    // Stock Management Toggle
+    document.getElementById('manage_stock')?.addEventListener('change', function () {
+        const el = document.querySelector('.stock-qty-field');
+        if (this.checked) el.classList.remove('hidden');
+        else el.classList.add('hidden');
+    });
+
+    // Submit Handler with Validation
+    function submitProductForm(btn) {
+        const form = document.getElementById('product-form');
+        const spinner = document.getElementById('btn-spinner');
+        const btnText = document.getElementById('btn-text');
+
+        // Ensure Description is Synced
+        const quillEditor = document.querySelector('.ql-editor');
+        if (quillEditor) {
+            document.getElementById('description_input').value = quillEditor.innerHTML;
+        }
+
+        // Handle Country Selection
+        const selectedCountries = [];
+        document.querySelectorAll('input[name="country_selection"]:checked').forEach(cb => {
+            selectedCountries.push(cb.value);
+        });
+
+        const countriesInput = document.getElementById('available_countries_input');
+        if (selectedCountries.length > 0) {
+            countriesInput.value = JSON.stringify(selectedCountries);
+        } else {
+            countriesInput.value = ''; // Empty means all countries
+        }
+
+        if (form.checkValidity()) {
+            // UI Feedback
+            btn.disabled = true;
+            btnText.textContent = 'Processing...';
+            spinner.classList.remove('hidden');
+
+            // Submit
+            form.submit();
+        } else {
+            // Handle Validation Errors
+            const invalid = form.querySelector(':invalid');
+            if (invalid) {
+                // Find and open the tab containing the invalid field
+                let parent = invalid.closest('.tab-content');
+                if (parent) {
+                    const tabId = parent.id;
+                    const tabBtn = document.querySelector(`button[onclick*="'${tabId}'"]`);
+                    if (tabBtn) tabBtn.click();
+                }
+
+                // Feedback
+                alert('Please fill in the required field: ' + (invalid.placeholder || invalid.name));
+                invalid.focus();
+
+                // Visual Highlight
+                invalid.classList.add('ring-2', 'ring-red-500', 'border-red-500');
+                setTimeout(() => invalid.classList.remove('ring-2', 'ring-red-500', 'border-red-500'), 3000);
+            }
+        }
+    }
+
+    // Payment Option Logic
+    function togglePaymentOptions() {
+        const select = document.getElementById('payment_option_select');
+        const advanceField = document.getElementById('advance_payment_field');
+        if (select && advanceField) {
+            if (select.value === 'partial_advance') {
+                advanceField.classList.remove('hidden');
+                advanceField.querySelector('input').setAttribute('required', 'required');
+            } else {
+                advanceField.classList.add('hidden');
+                advanceField.querySelector('input').removeAttribute('required');
+                advanceField.querySelector('input').value = '';
+            }
+        }
+    }
+
+    // Country List Data
+    const countryList = [
+        { name: 'Afghanistan', code: 'AF' }, { name: 'Albania', code: 'AL' }, { name: 'Algeria', code: 'DZ' },
+        { name: 'Andorra', code: 'AD' }, { name: 'Angola', code: 'AO' }, { name: 'Argentina', code: 'AR' },
+        { name: 'Armenia', code: 'AM' }, { name: 'Australia', code: 'AU' }, { name: 'Austria', code: 'AT' },
+        { name: 'Azerbaijan', code: 'AZ' }, { name: 'Bahrain', code: 'BH' }, { name: 'Bangladesh', code: 'BD' },
+        { name: 'Belgium', code: 'BE' }, { name: 'Belize', code: 'BZ' }, { name: 'Benin', code: 'BJ' },
+        { name: 'Bhutan', code: 'BT' }, { name: 'Bolivia', code: 'BO' }, { name: 'Bosnia and Herzegovina', code: 'BA' },
+        { name: 'Botswana', code: 'BW' }, { name: 'Brazil', code: 'BR' }, { name: 'Brunei', code: 'BN' },
+        { name: 'Bulgaria', code: 'BG' }, { name: 'Burkina Faso', code: 'BF' }, { name: 'Burundi', code: 'BI' },
+        { name: 'Cambodia', code: 'KH' }, { name: 'Cameroon', code: 'CM' }, { name: 'Canada', code: 'CA' },
+        { name: 'Central African Republic', code: 'CF' }, { name: 'Chad', code: 'TD' }, { name: 'Chile', code: 'CL' },
+        { name: 'China', code: 'CN' }, { name: 'Colombia', code: 'CO' }, { name: 'Comoros', code: 'KM' },
+        { name: 'Congo', code: 'CG' }, { name: 'Costa Rica', code: 'CR' }, { name: 'Croatia', code: 'HR' },
+        { name: 'Cuba', code: 'CU' }, { name: 'Cyprus', code: 'CY' }, { name: 'Czech Republic', code: 'CZ' },
+        { name: 'Denmark', code: 'DK' }, { name: 'Djibouti', code: 'DJ' }, { name: 'Dominica', code: 'DM' },
+        { name: 'Dominican Republic', code: 'DO' }, { name: 'Ecuador', code: 'EC' }, { name: 'Egypt', code: 'EG' },
+        { name: 'El Salvador', code: 'SV' }, { name: 'Equatorial Guinea', code: 'GQ' }, { name: 'Eritrea', code: 'ER' },
+        { name: 'Estonia', code: 'EE' }, { name: 'Ethiopia', code: 'ET' }, { name: 'Fiji', code: 'FJ' },
+        { name: 'Finland', code: 'FI' }, { name: 'France', code: 'FR' }, { name: 'Gabon', code: 'GA' },
+        { name: 'Gambia', code: 'GM' }, { name: 'Georgia', code: 'GE' }, { name: 'Germany', code: 'DE' },
+        { name: 'Ghana', code: 'GH' }, { name: 'Greece', code: 'GR' }, { name: 'Grenada', code: 'GD' },
+        { name: 'Guatemala', code: 'GT' }, { name: 'Guinea', code: 'GN' }, { name: 'Guyana', code: 'GY' },
+        { name: 'Haiti', code: 'HT' }, { name: 'Honduras', code: 'HN' }, { name: 'Hungary', code: 'HU' },
+        { name: 'Iceland', code: 'IS' }, { name: 'India', code: 'IN' }, { name: 'Indonesia', code: 'ID' },
+        { name: 'Iran', code: 'IR' }, { name: 'Iraq', code: 'IQ' }, { name: 'Ireland', code: 'IE' },
+        { name: 'Israel', code: 'IL' }, { name: 'Italy', code: 'IT' }, { name: 'Jamaica', code: 'JM' },
+        { name: 'Japan', code: 'JP' }, { name: 'Jordan', code: 'JO' }, { name: 'Kazakhstan', code: 'KZ' },
+        { name: 'Kenya', code: 'KE' }, { name: 'Kuwait', code: 'KW' }, { name: 'Kyrgyzstan', code: 'KG' },
+        { name: 'Laos', code: 'LA' }, { name: 'Latvia', code: 'LV' }, { name: 'Lebanon', code: 'LB' },
+        { name: 'Lesotho', code: 'LS' }, { name: 'Liberia', code: 'LR' }, { name: 'Libya', code: 'LY' },
+        { name: 'Liechtenstein', code: 'LI' }, { name: 'Lithuania', code: 'LT' }, { name: 'Luxembourg', code: 'LU' },
+        { name: 'Madagascar', code: 'MG' }, { name: 'Malawi', code: 'MW' }, { name: 'Malaysia', code: 'MY' },
+        { name: 'Maldives', code: 'MV' }, { name: 'Mali', code: 'ML' }, { name: 'Malta', code: 'MT' },
+        { name: 'Mauritania', code: 'MR' }, { name: 'Mauritius', code: 'MU' }, { name: 'Mexico', code: 'MX' },
+        { name: 'Moldova', code: 'MD' }, { name: 'Monaco', code: 'MC' }, { name: 'Mongolia', code: 'MN' },
+        { name: 'Montenegro', code: 'ME' }, { name: 'Morocco', code: 'MA' }, { name: 'Mozambique', code: 'MZ' },
+        { name: 'Myanmar', code: 'MM' }, { name: 'Namibia', code: 'NA' }, { name: 'Nepal', code: 'NP' },
+        { name: 'Netherlands', code: 'NL' }, { name: 'New Zealand', code: 'NZ' }, { name: 'Nicaragua', code: 'NI' },
+        { name: 'Niger', code: 'NE' }, { name: 'Nigeria', code: 'NG' }, { name: 'North Korea', code: 'KP' },
+        { name: 'Norway', code: 'NO' }, { name: 'Oman', code: 'OM' }, { name: 'Pakistan', code: 'PK' },
+        { name: 'Palestine', code: 'PS' }, { name: 'Panama', code: 'PA' }, { name: 'Papua New Guinea', code: 'PG' },
+        { name: 'Paraguay', code: 'PY' }, { name: 'Peru', code: 'PE' }, { name: 'Philippines', code: 'PH' },
+        { name: 'Poland', code: 'PL' }, { name: 'Portugal', code: 'PT' }, { name: 'Qatar', code: 'QA' },
+        { name: 'Romania', code: 'RO' }, { name: 'Russia', code: 'RU' }, { name: 'Rwanda', code: 'RW' },
+        { name: 'Saudi Arabia', code: 'SA' }, { name: 'Senegal', code: 'SN' }, { name: 'Serbia', code: 'RS' },
+        { name: 'Seychelles', code: 'SC' }, { name: 'Sierra Leone', code: 'SL' }, { name: 'Singapore', code: 'SG' },
+        { name: 'Slovakia', code: 'SK' }, { name: 'Slovenia', code: 'SI' }, { name: 'Somalia', code: 'SO' },
+        { name: 'South Africa', code: 'ZA' }, { name: 'South Korea', code: 'KR' }, { name: 'Spain', code: 'ES' },
+        { name: 'Sri Lanka', code: 'LK' }, { name: 'Sudan', code: 'SD' }, { name: 'Suriname', code: 'SR' },
+        { name: 'Sweden', code: 'SE' }, { name: 'Switzerland', code: 'CH' }, { name: 'Syria', code: 'SY' },
+        { name: 'Taiwan', code: 'TW' }, { name: 'Tajikistan', code: 'TJ' }, { name: 'Tanzania', code: 'TZ' },
+        { name: 'Thailand', code: 'TH' }, { name: 'Timor-Leste', code: 'TL' }, { name: 'Togo', code: 'TG' },
+        { name: 'Tunisia', code: 'TN' }, { name: 'Turkey', code: 'TR' }, { name: 'Turkmenistan', code: 'TM' },
+        { name: 'Uganda', code: 'UG' }, { name: 'Ukraine', code: 'UA' }, { name: 'United Arab Emirates', code: 'AE' },
+        { name: 'United Kingdom', code: 'GB' }, { name: 'United States', code: 'US' }, { name: 'Uruguay', code: 'UY' },
+        { name: 'Uzbekistan', code: 'UZ' }, { name: 'Vatican City', code: 'VA' }, { name: 'Venezuela', code: 'VE' },
+        { name: 'Vietnam', code: 'VN' }, { name: 'Yemen', code: 'YE' }, { name: 'Zambia', code: 'ZM' },
+        { name: 'Zimbabwe', code: 'ZW' }
+    ];
+
+    // Initialize Countries
+    function initCountries() {
+        const container = document.getElementById('country-checkbox-list');
+        const input = document.getElementById('available_countries_input');
+        // Prevent duplicate initialization
+        if (!container || container.children.length > 0) return;
+
+        let selected = [];
+        try {
+            selected = JSON.parse(input.value || '[]');
+        } catch (e) { }
+
+        countryList.forEach(country => {
+            const isChecked = selected.includes(country.code) ? 'checked' : '';
+            const div = document.createElement('div');
+            div.className = 'flex items-center p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded';
+            div.innerHTML = `
+                <input type="checkbox" name="country_selection" value="${country.code}" id="c_${country.code}" ${isChecked} 
+                    class="w-4 h-4 text-primary-gold border-gray-300 rounded focus:ring-primary-gold">
+                <label for="c_${country.code}" class="ml-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer flex-1">${country.name}</label>
+            `;
+            container.appendChild(div);
+        });
+    }
+
+    function selectAllCountries() {
+        document.querySelectorAll('input[name="country_selection"]').forEach(cb => cb.checked = true);
+    }
+
+    function deselectAllCountries() {
+        document.querySelectorAll('input[name="country_selection"]').forEach(cb => cb.checked = false);
+    }
+
+    // Initialization
+    document.addEventListener('DOMContentLoaded', () => {
+        toggleProductType();
+        togglePaymentOptions();
+        initCountries();
+        document.getElementById('payment_option_select')?.addEventListener('change', togglePaymentOptions);
+
+        // Restore tab
+        const activeTab = sessionStorage.getItem('active_product_tab');
+        if (activeTab) {
+            const btn = document.querySelector(`button[onclick="openTab(event, '${activeTab}')"]`);
+            if (btn) btn.click();
+        }
+
+        // Initialize Quill
+        var quill = new Quill('#editor-container', {
+            theme: 'snow',
+            placeholder: 'Write a detailed description...',
+        });
+        quill.on('text-change', function () {
+            document.getElementById('description_input').value = quill.root.innerHTML;
+        });
+    });
+</script>

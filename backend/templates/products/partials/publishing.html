@@ -1,0 +1,33 @@
+<div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Publishing</h3>
+
+    <div class="space-y-4">
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Status</label>
+            <select name="status"
+                class="custom-input w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none">
+                <option value="published" {% if product and product.status=='published' %}selected{% endif %}>Published
+                </option>
+                <option value="coming_soon" {% if product and product.status=='coming_soon' %}selected{% endif %}>Coming
+                    Soon
+                </option>
+                <option value="draft" {% if product and product.status=='draft' %}selected{% endif %}>Draft</option>
+                <option value="private" {% if product and product.status=='private' %}selected{% endif %}>Private
+                </option>
+            </select>
+        </div>
+
+        <div class="flex items-center justify-between py-2 border-t dark:border-gray-700">
+            <span class="text-sm text-gray-700 dark:text-gray-300">Featured Product</span>
+            <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" name="featured" {% if product and product.featured %}checked{% endif %}
+                    class="sr-only peer">
+                <div
+                    class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-gold">
+                </div>
+            </label>
+        </div>
+
+
+    </div>
+</div>

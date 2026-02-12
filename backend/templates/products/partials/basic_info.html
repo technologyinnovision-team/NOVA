@@ -1,0 +1,54 @@
+<div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-6 border-b dark:border-gray-700 pb-2">
+        Basic Information
+    </h3>
+
+    <div class="space-y-6">
+        <!-- Product Title -->
+        <div>
+            <label for="title" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Product Title <span class="text-red-500">*</span>
+            </label>
+            <input type="text" id="title" name="title"
+                value="{{ product.title if product else (form_data.title if form_data else '') }}" required
+                class="custom-input w-full px-4 py-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none"
+                placeholder="e.g. Elegant Silk Dress">
+        </div>
+
+        <!-- Slug -->
+        <div>
+            <label for="slug" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Permalink</label>
+            <div class="flex items-center group">
+                <span
+                    class="px-3 py-3 bg-gray-50 dark:bg-gray-700 border border-r-0 border-gray-200 dark:border-gray-600 rounded-l-lg text-gray-500 dark:text-gray-400 text-sm">
+                    /product/
+                </span>
+                <input type="text" id="slug" name="slug"
+                    value="{{ product.slug if product else (form_data.slug if form_data else '') }}"
+                    class="custom-input flex-1 px-4 py-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-r-lg text-gray-900 dark:text-white text-sm font-mono focus:outline-none placeholder-gray-400"
+                    placeholder="auto-generated-slug">
+            </div>
+        </div>
+
+        <!-- Short Description -->
+        <div>
+            <label for="short_description" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Short Description
+            </label>
+            <textarea id="short_description" name="short_description" rows="3"
+                class="custom-input w-full px-4 py-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none resize-none">{{ product.short_description if product else (form_data.short_description if form_data else '') }}</textarea>
+        </div>
+
+        <!-- Full Description (Quill) -->
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Full Description
+            </label>
+            <input type="hidden" name="description" id="description_input">
+            <div id="editor-container" class="bg-white dark:bg-gray-900">
+                {{ product.description|safe if product and product.description else (form_data.description|safe if
+                form_data and form_data.description else '') }}
+            </div>
+        </div>
+    </div>
+</div>

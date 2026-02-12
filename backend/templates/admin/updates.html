@@ -1,0 +1,323 @@
+{% extends "base.html" %}
+
+{% block title %}System Updates - Admin Panel{% endblock %}
+
+{% block page_title %}System Updates{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Status Column -->
+    <div class="lg:col-span-1 space-y-6">
+
+        <!-- Current Version Card -->
+        <div
+            class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm dark:shadow-none transition-theme overflow-hidden">
+            <div class="p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Current Version</h3>
+                    <div class="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                        <svg class="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10">
+                            </path>
+                        </svg>
+                    </div>
+                </div>
+
+                <div class="text-3xl font-bold text-gray-900 dark:text-white mb-1">v{{ current_version }}</div>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">Running in {{ config.FLASK_ENV }} mode</p>
+
+                <form action="{{ url_for('updates.index') }}" method="get">
+                    <button type="submit"
+                        class="w-full py-2.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-medium rounded-lg transition-colors flex items-center justify-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                            </path>
+                        </svg>
+                        Check for Updates
+                    </button>
+                </form>
+            </div>
+            <div class="bg-gray-50 dark:bg-black/20 px-6 py-3 border-t border-gray-100 dark:border-gray-800">
+                <div class="text-xs text-center text-gray-500">Last checked: Just now</div>
+            </div>
+        </div>
+
+        <!-- System Health / Quick Stats (Optional Placeholder) -->
+        <div
+            class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm dark:shadow-none p-6 transition-theme">
+            <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">System
+                Status</h3>
+            <div class="space-y-4">
+                <div class="flex items-center justify-between">
+                    <span class="text-sm text-gray-700 dark:text-gray-300">Database Migrations</span>
+                    <span
+                        class="px-2 py-1 text-xs font-medium rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">Synced</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-sm text-gray-700 dark:text-gray-300">Persistence</span>
+                    <span
+                        class="px-2 py-1 text-xs font-medium rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">Active</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-sm text-gray-700 dark:text-gray-300">Rollback Point</span>
+                    {% if rollback_available %}
+                    <span
+                        class="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">v{{
+                        previous_version }}</span>
+                    {% else %}
+                    <span
+                        class="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500">None</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Main Content Column -->
+    <div class="lg:col-span-2 space-y-6">
+
+        <!-- Live Logs Container -->
+        <div id="log-container"
+            class="bg-gray-900 rounded-lg shadow-lg overflow-hidden transition-all duration-300 {% if not update_running %}hidden{% endif %}">
+            <div class="bg-gray-800 px-4 py-3 border-b border-gray-700 flex items-center justify-between">
+                <h3 class="text-sm font-semibold text-gray-200 flex items-center gap-2">
+                    <span class="relative flex h-2.5 w-2.5">
+                        <span
+                            class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
+                    </span>
+                    System Update Logs
+                </h3>
+                <span class="text-xs text-gray-500 font-mono">Live Stream</span>
+            </div>
+            <div id="log-output" class="p-4 h-64 overflow-y-auto font-mono text-xs text-green-400 space-y-1">
+                <!-- Logs will appear here -->
+                {% if update_running %}
+                <div class="text-gray-500">Reconnecting to log stream...</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Error Alert -->
+        {% if error %}
+        <div
+            class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 flex items-start gap-4 transition-theme">
+            <svg class="w-6 h-6 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor"
+                viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <div>
+                <h3 class="text-sm font-medium text-red-800 dark:text-red-300">Update Check Failed</h3>
+                <p class="text-sm text-red-700 dark:text-red-400 mt-1">{{ error }}</p>
+                <div class="mt-3">
+                    <a href="{{ url_for('settings.general') }}"
+                        class="text-sm font-medium text-red-800 dark:text-red-300 hover:text-red-900 dark:hover:text-red-200 underline">Check
+                        Configuration</a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if latest_release %}
+        <!-- Update Available Card -->
+        <div
+            class="bg-white dark:bg-gray-900 border border-green-200 dark:border-green-800 rounded-lg shadow-sm dark:shadow-none overflow-hidden transition-theme relative">
+            <div class="absolute top-0 right-0 p-4">
+                <span
+                    class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400">
+                    New Update Available
+                </span>
+            </div>
+
+            <div class="p-6">
+                <div class="flex items-center gap-4 mb-6">
+                    <div
+                        class="w-12 h-12 bg-green-100 dark:bg-green-900/50 rounded-xl flex items-center justify-center">
+                        <svg class="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3 3m0 0l-3-3m3 3v-12">
+                            </path>
+                        </svg>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-900 dark:text-white">{{ latest_release.version }}</h2>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">{{ latest_release.tag_name }} &bull;
+                            Released {{ latest_release.published_at[:10] }}</p>
+                    </div>
+                </div>
+
+                <div
+                    class="bg-gray-50 dark:bg-black/40 rounded-lg border border-gray-200 dark:border-gray-800 p-4 mb-6">
+                    <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 uppercase tracking-wide">
+                        Release Notes</h4>
+                    <div class="prose dark:prose-invert prose-sm max-w-none max-h-60 overflow-y-auto custom-scrollbar">
+                        <pre
+                            class="whitespace-pre-wrap font-sans text-gray-600 dark:text-gray-400">{{ latest_release.body }}</pre>
+                    </div>
+                </div>
+
+                <div
+                    class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 mb-6 flex gap-3">
+                    <svg class="w-5 h-5 text-yellow-600 dark:text-yellow-400 flex-shrink-0" fill="none"
+                        stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
+                        </path>
+                    </svg>
+                    <p class="text-sm text-yellow-800 dark:text-yellow-300">
+                        <strong>Important:</strong> The system will restart automatically after the update is installed.
+                        This may result in a brief downtime (usually less than 1 minute).
+                    </p>
+                </div>
+
+                <form action="{{ url_for('updates.install_update') }}" method="post"
+                    onsubmit="return confirm('Are you sure you want to install this update? The system will restart.');">
+                    <input type="hidden" name="version" value="{{ latest_release.version }}">
+                    <input type="hidden" name="asset_url" value="{{ latest_release.download_url }}">
+                    <button type="submit"
+                        class="w-full py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg shadow-lg shadow-green-600/30 transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                        </svg>
+                        Download & Install Update
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        {% else %}
+        <!-- Up to Date Card -->
+        <div
+            class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm dark:shadow-none p-8 text-center transition-theme h-64 flex flex-col items-center justify-center">
+            <div class="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
+                <svg class="w-8 h-8 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor"
+                    viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+            </div>
+            <h3 class="text-xl font-semibold text-gray-900 dark:text-white">You are up to date!</h3>
+            <p class="text-gray-500 dark:text-gray-400 mt-2">Current version {{ current_version }} is the latest
+                release.</p>
+        </div>
+        {% endif %}
+
+        <!-- Rollback Section -->
+        {% if rollback_available %}
+        <div
+            class="bg-white dark:bg-gray-900 border border-warm-gray-200 dark:border-warm-gray-800 rounded-lg shadow-sm dark:shadow-none p-6 transition-theme">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                        <svg class="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M12.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0019 16V8a1 1 0 00-1.6-.8l-5.333 4zM4.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0011 16V8a1 1 0 00-1.6-.8l-5.334 4z">
+                            </path>
+                        </svg>
+                        Emergency Rollback
+                    </h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Restore from backup if you experience
+                        critical issues. Backup version: <strong>{{ previous_version or 'Unknown' }}</strong></p>
+                </div>
+            </div>
+
+            <div
+                class="flex items-center justify-between bg-orange-50 dark:bg-orange-900/10 border border-orange-100 dark:border-orange-900/30 rounded-lg p-4">
+                <form action="{{ url_for('updates.rollback') }}" method="post" class="w-full"
+                    onsubmit="return confirm('Are you sure you want to rollback to the previous version? This will restore all files from the backup.');">
+                    <button type="submit"
+                        class="w-full px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path>
+                        </svg>
+                        Rollback to Previous Version
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Real-time log streaming
+    let eventSource = null;
+    let updateRunning = {{ 'true' if update_running else 'false' }};
+
+    function startLogStream() {
+        const logContainer = document.getElementById('log-container');
+        const logOutput = document.getElementById('log-output');
+
+        // Show log container
+        logContainer.classList.remove('hidden');
+        logOutput.innerHTML = '<div class="text-gray-500">Connecting to log stream...</div>';
+
+        // Create EventSource connection
+        eventSource = new EventSource('{{ url_for("updates.stream_logs") }}');
+
+        eventSource.onmessage = function (event) {
+            const data = JSON.parse(event.data);
+
+            if (data.type === 'done') {
+                logOutput.innerHTML += '<div class="text-green-400 font-bold mt-2">✓ ' + data.message + '</div>';
+                logOutput.innerHTML += '<div class="text-yellow-400 mt-2">⟳ Restarting server... The page will reload in 5 seconds.</div>';
+                eventSource.close();
+
+                // Reload page after 5 seconds to show new version
+                setTimeout(function () {
+                    window.location.reload();
+                }, 5000);
+            } else if (data.type === 'error') {
+                logOutput.innerHTML += '<div class="text-red-400 font-bold mt-2">✗ Error: ' + data.message + '</div>';
+                eventSource.close();
+            } else if (data.message) {
+                // Regular log message
+                const timestamp = new Date().toLocaleTimeString();
+                logOutput.innerHTML += '<div class="text-green-400"><span class="text-gray-600">[' + timestamp + ']</span> ' + escapeHtml(data.message) + '</div>';
+                // Auto-scroll to bottom
+                logOutput.scrollTop = logOutput.scrollHeight;
+            }
+        };
+
+        eventSource.onerror = function (error) {
+            console.error('EventSource error:', error);
+            logOutput.innerHTML += '<div class="text-red-400">Connection error. Retrying...</div>';
+        };
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // Start log stream if update is running
+    if (updateRunning) {
+        startLogStream();
+    }
+
+    // Monitor for new updates being started
+    document.addEventListener('DOMContentLoaded', function () {
+        const installForms = document.querySelectorAll('form[action="{{ url_for("updates.install_update") }}"]');
+        installForms.forEach(function (form) {
+            form.addEventListener('submit', function (e) {
+                // Don't prevent default - let form submit
+                // But prepare to start log stream after redirect
+                setTimeout(function () {
+                    startLogStream();
+                }, 1000);
+            });
+        });
+    });
+</script>
+{% endblock %}

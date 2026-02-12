@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Edit Zone' if zone else 'Create Zone' }}{% endblock %}
+
+{% block content %}
+<div class="p-6 max-w-4xl">
+    <div class="mb-6">
+        <a href="{{ url_for('shipping_admin.zones') }}" class="text-pink-500 hover:text-pink-400">
+            <i class="fas fa-arrow-left mr-2"></i>Back to Zones
+        </a>
+    </div>
+
+    <div class="bg-gray-800 rounded-lg p-6">
+        <h1 class="text-2xl font-bold text-white mb-6">
+            {{ 'Edit Zone' if zone else 'Create Zone' }}
+        </h1>
+
+        <form method="POST" id="zoneForm">
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Zone Name</label>
+                    <input type="text" name="name" required value="{{ zone.name if zone else '' }}"
+                        class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-pink-500"
+                        placeholder="e.g., North America, Europe">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Zone Order</label>
+                    <input type="number" name="zone_order" min="0" value="{{ zone.zone_order if zone else 0 }}"
+                        class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-pink-500"
+                        placeholder="0">
+                    <p class="text-xs text-gray-400 mt-1">Lower numbers appear first</p>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Locations</label>
+                    <div id="locationsContainer" class="space-y-2 mb-2">
+                        {% if zone and zone.locations %}
+                        {% for location in zone.locations %}
+                        <div class="location-row flex gap-2">
+                            <select onchange="updateLocationInput(this)"
+                                class="location-type w-32 px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-pink-500">
+                                <option value="country" {{ 'selected' if location.location_type=='country' else '' }}>
+                                    Country</option>
+                                <option value="state" {{ 'selected' if location.location_type=='state' else '' }}>State
+                                </option>
+                                <option value="postcode" {{ 'selected' if location.location_type=='postcode' else '' }}>
+                                    Postcode</option>
+                            </select>
+
+                            <div class="location-input-container flex-1">
+                                {% if location.location_type == 'country' %}
+                                <select
+                                    class="location-value w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-pink-500">
+                                    <option value="">Select Country</option>
+                                    {% for country in countries %}
+                                    <option value="{{ country.code }}" {{ 'selected' if
+                                        location.location_code==country.code else '' }}>{{ country.name }}</option>
+                                    {% endfor %}
+                                </select>
+                                {% else %}
+                                <input type="text"
+                                    class="location-value w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-pink-500"
+                                    placeholder="{{ 'State Code' if location.location_type == 'state' else 'Postcode' }}"
+                                    value="{{ location.location_code }}">
+                                {% endif %}
+                            </div>
+
+                            <button type="button" onclick="removeLocation(this)"
+                                class="px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        {% endfor %}
+                        {% endif %}
+                    </div>
+                    <button type="button" onclick="addLocation()"
+                        class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm">
+                        <i class="fas fa-plus mr-1"></i>Add Location
+                    </button>
+                </div>
+
+                <input type="hidden" name="locations" id="locationsJson">
+
+                <div class="flex gap-3 pt-4">
+                    <button type="submit"
+                        class="px-6 py-2 bg-pink-600 hover:bg-pink-700 text-white rounded-lg transition-colors">
+                        <i class="fas fa-save mr-2"></i>Save Zone
+                    </button>
+                    <a href="{{ url_for('shipping_admin.zones') }}"
+                        class="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors">
+                        Cancel
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    const COUNTRIES = {{ countries | tojson | safe }};
+
+    function getCountryOptions(selectedCode) {
+        let options = '<option value="">Select Country</option>';
+        COUNTRIES.forEach(country => {
+            const isSelected = selectedCode === country.code ? 'selected' : '';
+            options += `<option value="${country.code}" ${isSelected}>${country.name}</option>`;
+        });
+        return options;
+    }
+
+    function updateLocationInput(typeSelect) {
+        const row = typeSelect.closest('.location-row');
+        const inputContainer = row.querySelector('.location-input-container');
+        const currentValue = inputContainer.querySelector('.location-value')?.value || '';
+
+        if (typeSelect.value === 'country') {
+            inputContainer.innerHTML = `
+                <select class="location-value flex-1 px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-pink-500">
+                    ${getCountryOptions(currentValue)}
+                </select>
+            `;
+        } else {
+            inputContainer.innerHTML = `
+                <input type="text" 
+                       class="location-value flex-1 px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-pink-500"
+                       placeholder="${typeSelect.value === 'state' ? 'State Code' : 'Postcode'}" 
+                       value="${currentValue}">
+            `;
+        }
+    }
+
+    function addLocation() {
+        const container = document.getElementById('locationsContainer');
+        const row = document.createElement('div');
+        row.className = 'location-row flex gap-2';
+        row.innerHTML = `
+            <select onchange="updateLocationInput(this)" class="location-type w-32 px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-pink-500">
+                <option value="country">Country</option>
+                <option value="state">State</option>
+                <option value="postcode">Postcode</option>
+            </select>
+            <div class="location-input-container flex-1">
+                <select class="location-value w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-pink-500">
+                    ${getCountryOptions('')}
+                </select>
+            </div>
+            <button type="button" onclick="removeLocation(this)" 
+                    class="px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+        container.appendChild(row);
+    }
+
+    function removeLocation(btn) {
+        btn.closest('.location-row').remove();
+    }
+
+    document.getElementById('zoneForm').addEventListener('submit', function (e) {
+        const locations = [];
+        document.querySelectorAll('.location-row').forEach(row => {
+            const type = row.querySelector('.location-type').value;
+            const valueInput = row.querySelector('.location-value');
+            const code = valueInput.value.trim();
+
+            if (code) {
+                locations.push({ code, type });
+            }
+        });
+        document.getElementById('locationsJson').value = JSON.stringify(locations);
+    });
+</script>
+{% endblock %}

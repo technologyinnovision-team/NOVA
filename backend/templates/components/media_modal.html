@@ -1,0 +1,113 @@
+<!-- Media Library Modal -->
+<div id="media-library-modal" class="fixed inset-0 z-[100] hidden" aria-labelledby="modal-title" role="dialog"
+    aria-modal="true">
+    <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity backdrop-filter backdrop-blur-sm"></div>
+
+    <div class="fixed inset-0 z-10 overflow-y-auto">
+        <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+            <div
+                class="relative transform overflow-hidden rounded-lg bg-white dark:bg-gray-800 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-4xl h-[80vh] flex flex-col">
+
+                <!-- Header -->
+                <div
+                    class="bg-white dark:bg-gray-800 px-4 py-3 sm:px-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                    <h3 class="text-lg font-semibold leading-6 text-gray-900 dark:text-white" id="modal-title">Media
+                        Library</h3>
+                    <button type="button" id="media-modal-close"
+                        class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300">
+                        <span class="sr-only">Close</span>
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
+                            aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Tabs -->
+                <div class="border-b border-gray-200 dark:border-gray-700">
+                    <nav class="-mb-px flex" aria-label="Tabs">
+                        <button type="button" id="tab-upload-btn"
+                            class="w-1/2 border-b-2 border-transparent py-4 px-1 text-center text-sm font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
+                            Upload Files
+                        </button>
+                        <button type="button" id="tab-library-btn"
+                            class="w-1/2 border-b-2 border-gold text-gold py-4 px-1 text-center text-sm font-medium"
+                            aria-current="page">
+                            Media Library
+                        </button>
+                    </nav>
+                </div>
+
+                <!-- Content -->
+                <div class="flex-1 overflow-y-auto p-4 sm:p-6 bg-gray-50 dark:bg-gray-900 relative">
+
+                    <!-- View: Upload -->
+                    <div id="view-upload" class="hidden h-full flex flex-col items-center justify-center">
+                        <div id="media-dropzone"
+                            class="w-full max-w-lg p-10 border-2 border-dashed border-gray-300 rounded-lg text-center cursor-pointer hover:border-gold hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                            <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none"
+                                viewBox="0 0 48 48" aria-hidden="true">
+                                <path
+                                    d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                            <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                                <span class="font-medium text-gold hover:text-gold-dark">Upload a file</span> or drag
+                                and drop
+                            </p>
+                            <p class="mt-1 text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
+                            <input id="media-upload-input" type="file" class="hidden" multiple accept="image/*">
+                        </div>
+                        <div id="upload-status" class="hidden mt-4 text-sm text-gray-500">Uploading...</div>
+                    </div>
+
+                    <!-- View: Library -->
+                    <div id="view-library" class="h-full flex flex-col">
+                        <!-- Search/Filter -->
+                        <div class="mb-4">
+                            <input type="text" id="media-search-input" placeholder="Search media..."
+                                class="w-full rounded-md border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm focus:border-gold focus:ring-gold sm:text-sm p-2">
+                        </div>
+
+                        <!-- Grid -->
+                        <div id="media-grid" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-4 auto-rows-min">
+                            <!-- Items injected by JS -->
+                        </div>
+
+                        <!-- Loader -->
+                        <div id="media-loader" class="hidden py-4 text-center">
+                            <svg class="animate-spin h-8 w-8 text-gold mx-auto" xmlns="http://www.w3.org/2000/svg"
+                                fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                    stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor"
+                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                                </path>
+                            </svg>
+                        </div>
+
+                        <!-- Load More -->
+                        <div class="text-center mt-4">
+                            <button id="media-load-more"
+                                class="hidden px-4 py-2 text-sm text-gray-600 hover:text-gray-900 border border-gray-300 rounded-md">Load
+                                More</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div
+                    class="bg-gray-50 dark:bg-gray-800 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse border-t border-gray-200 dark:border-gray-700">
+                    <button type="button" id="media-modal-insert" disabled
+                        class="inline-flex w-full justify-center rounded-md bg-black px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-gray-800 sm:ml-3 sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed">
+                        Insert Media
+                    </button>
+                    <button type="button" id="media-modal-cancel"
+                        class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto dark:bg-gray-700 dark:text-gray-300 dark:ring-gray-600 dark:hover:bg-gray-600">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

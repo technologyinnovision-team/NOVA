@@ -1,0 +1,40 @@
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">SKU</label>
+        <input type="text" name="sku" value="{{ product.sku if product else '' }}"
+            class="custom-input w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none">
+    </div>
+
+    <div class="inventory-fields">
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Stock Status</label>
+        <select name="stock_status"
+            class="custom-input w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none">
+            <option value="in_stock" {% if product and product.stock_status=='in_stock' %}selected{% endif %}>In Stock
+            </option>
+            <option value="out_of_stock" {% if product and product.stock_status=='out_of_stock' %}selected{% endif %}>
+                Out of Stock</option>
+            <option value="backorder" {% if product and product.stock_status=='backorder' %}selected{% endif %}>On
+                Backorder</option>
+        </select>
+    </div>
+
+    <div class="col-span-2 inventory-fields">
+        <div class="flex items-center gap-3 mb-4">
+            <input type="checkbox" id="manage_stock" name="manage_stock" {% if product and product.manage_stock
+                %}checked{% endif %} class="w-4 h-4 text-primary-gold border-gray-300 rounded focus:ring-primary-gold">
+            <label for="manage_stock" class="text-sm font-medium text-gray-700 dark:text-gray-300">Enable stock
+                management</label>
+        </div>
+
+        <div class="stock-qty-field hidden {{ 'block' if product and product.manage_stock else '' }}">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Stock Quantity</label>
+            <input type="number" name="stock_quantity" value="{{ product.stock_quantity if product else 0 }}" min="0"
+                class="custom-input w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none">
+        </div>
+    </div>
+
+    <div
+        class="variable-notice hidden col-span-2 p-4 bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 rounded-lg text-sm">
+        <p>Inventory for variable products is managed in the <strong>Variations</strong> tab.</p>
+    </div>
+</div>

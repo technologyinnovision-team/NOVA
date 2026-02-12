@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block title %}Backups - Admin Panel{% endblock %}
+
+{% block page_title %}Backups{% endblock %}
+
+{% block content %}
+<div
+    class="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800 p-6 max-w-2xl mx-auto">
+    <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Export Data</h2>
+    <p class="text-gray-600 dark:text-gray-400 mb-6">Select the data you want to backup. The output will be a ZIP file
+        containing the requested data.</p>
+
+    <form id="backupForm" class="space-y-4">
+        <div class="space-y-2">
+            <div class="flex items-center">
+                <input id="db_option" name="database" type="checkbox" checked
+                    class="w-4 h-4 text-gold bg-gray-100 border-gray-300 rounded focus:ring-gold dark:focus:ring-gold dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                <label for="db_option" class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">Database Tables
+                    (SQL Dump)</label>
+            </div>
+            <p class="text-xs text-gray-500 dark:text-gray-500 ml-6">Exports all database tables as .sql file.</p>
+
+            <div class="flex items-center pt-2">
+                <input id="media_option" name="media" type="checkbox"
+                    class="w-4 h-4 text-gold bg-gray-100 border-gray-300 rounded focus:ring-gold dark:focus:ring-gold dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                <label for="media_option" class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">Media Files
+                    (Uploads)</label>
+            </div>
+            <p class="text-xs text-gray-500 dark:text-gray-500 ml-6">Exports all files in the uploads directory.</p>
+        </div>
+
+        <div id="error-message"
+            class="hidden p-4 mb-4 text-sm text-red-800 rounded-lg bg-red-50 dark:bg-gray-800 dark:text-red-400"
+            role="alert"></div>
+
+        <div class="pt-6">
+            <button type="submit" id="createBackupBtn"
+                class="text-white bg-gold hover:bg-gold-dark font-medium rounded-lg text-sm px-5 py-2.5 text-center inline-flex items-center transition-colors">
+                <svg id="downloadIcon" class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                </svg>
+                <svg id="loadingIcon" class="hidden animate-spin -ml-1 mr-3 h-4 w-4 text-white" fill="none"
+                    viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                    </path>
+                </svg>
+                <span id="btnText">Create Backup</span>
+            </button>
+        </div>
+    </form>
+
+    <div id="downloadSection" class="hidden mt-6 pt-6 border-t border-gray-200 dark:border-gray-800">
+        <h3 class="text-sm font-medium text-gray-900 dark:text-white mb-2">Backup Ready</h3>
+        <a id="downloadLink" href="#"
+            class="text-blue-600 dark:text-blue-400 hover:underline text-sm flex items-center">
+            Click here to download zip file
+        </a>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.getElementById('backupForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+
+        const dbOption = document.getElementById('db_option').checked;
+        const mediaOption = document.getElementById('media_option').checked;
+
+        if (!dbOption && !mediaOption) {
+            alert('Please select at least one backup option.');
+            return;
+        }
+
+        // UI Loading State
+        const btn = document.getElementById('createBackupBtn');
+        const btnText = document.getElementById('btnText');
+        const downloadIcon = document.getElementById('downloadIcon');
+        const loadingIcon = document.getElementById('loadingIcon');
+        const errorMsg = document.getElementById('error-message');
+        const downloadSection = document.getElementById('downloadSection');
+
+        btn.disabled = true;
+        btn.classList.add('opacity-75', 'cursor-not-allowed');
+        btnText.textContent = 'Generating Backup...';
+        downloadIcon.classList.add('hidden');
+        loadingIcon.classList.remove('hidden');
+        errorMsg.classList.add('hidden');
+        downloadSection.classList.add('hidden');
+
+        try {
+            const response = await fetch("{{ url_for('backups.create') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    database: dbOption,
+                    media: mediaOption
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                const downloadLink = document.getElementById('downloadLink');
+                downloadLink.href = data.download_url;
+                downloadSection.classList.remove('hidden');
+            } else {
+                errorMsg.textContent = data.message || 'An error occurred';
+                errorMsg.classList.remove('hidden');
+            }
+        } catch (error) {
+            errorMsg.textContent = 'Network error occurred. Please try again.';
+            errorMsg.classList.remove('hidden');
+            console.error('Error:', error);
+        } finally {
+            // Reset Button State
+            btn.disabled = false;
+            btn.classList.remove('opacity-75', 'cursor-not-allowed');
+            btnText.textContent = 'Create Backup';
+            downloadIcon.classList.remove('hidden');
+            loadingIcon.classList.add('hidden');
+        }
+    });
+</script>
+{% endblock %}

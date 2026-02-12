@@ -1,0 +1,618 @@
+{% extends "base.html" %}
+
+{% block title %}Products - Admin Panel{% endblock %}
+
+{% block page_title %}Products{% endblock %}
+
+{% block extra_css %}
+<style>
+    .filter-active {
+        border-bottom: 2px solid #d4af37;
+        color: #d4af37;
+        font-weight: 600;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="mb-4 lg:mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
+    <h2 class="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">Products</h2>
+    <div class="flex flex-wrap gap-2 sm:gap-3">
+        <a href="{{ url_for('products.import_csv') }}"
+            class="px-3 sm:px-4 py-2 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg transition-colors text-xs sm:text-sm whitespace-nowrap">Import
+            CSV</a>
+        <a href="{{ url_for('products.create') }}"
+            class="px-3 sm:px-4 py-2 bg-pink hover:bg-pink-dark text-white rounded-lg transition-colors text-xs sm:text-sm font-medium whitespace-nowrap">Add
+            New Product</a>
+    </div>
+</div>
+
+<div
+    class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm dark:shadow-none transition-theme">
+    <!-- Status Filter Tabs -->
+    <div class="px-3 sm:px-6 py-3 border-b border-gray-200 dark:border-gray-800 overflow-x-auto">
+        <div class="flex items-center gap-4 sm:gap-6 min-w-max">
+            <a href="{{ url_for('products.list') }}"
+                class="text-xs sm:text-sm font-medium whitespace-nowrap {% if not status_filter %}filter-active{% else %}text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white{% endif %} transition-colors">
+                All ({{ total_count }})
+            </a>
+            <a href="{{ url_for('products.list', status='published') }}"
+                class="text-xs sm:text-sm font-medium whitespace-nowrap {% if status_filter == 'published' %}filter-active{% else %}text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white{% endif %} transition-colors">
+                Published ({{ published_count }})
+            </a>
+            <a href="{{ url_for('products.list', status='draft') }}"
+                class="text-xs sm:text-sm font-medium whitespace-nowrap {% if status_filter == 'draft' %}filter-active{% else %}text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white{% endif %} transition-colors">
+                Drafts ({{ draft_count }})
+            </a>
+            <a href="{{ url_for('products.list', status='private') }}"
+                class="text-xs sm:text-sm font-medium whitespace-nowrap {% if status_filter == 'private' %}filter-active{% else %}text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white{% endif %} transition-colors">
+                Private ({{ private_count }})
+            </a>
+            <span class="text-gray-400 dark:text-gray-600 hidden sm:inline">|</span>
+            <a href="{{ url_for('products.list', sort='date') }}"
+                class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors whitespace-nowrap">
+                Sorting
+            </a>
+        </div>
+    </div>
+
+    <!-- Search Bar -->
+    <div class="px-3 sm:px-6 py-4 border-b border-gray-200 dark:border-gray-800">
+        <form method="GET" class="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+            <input type="hidden" name="status" value="{{ status_filter }}">
+            <input type="hidden" name="category" value="{{ category_filter }}">
+            <input type="hidden" name="product_type" value="{{ product_type_filter }}">
+            <input type="hidden" name="stock_status" value="{{ stock_status_filter }}">
+            <input type="hidden" name="featured" value="{{ featured_filter }}">
+            <input type="hidden" name="on_sale" value="{{ on_sale_filter }}">
+
+            <div class="flex-1">
+                <input type="text" id="search" name="search" value="{{ search }}" placeholder="Search products..."
+                    class="w-full px-3 sm:px-4 py-2 sm:py-2.5 bg-white dark:bg-black border border-gray-300 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-theme">
+            </div>
+            <button type="submit"
+                class="px-4 sm:px-6 py-2 sm:py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-xs sm:text-sm font-medium whitespace-nowrap">
+                Search
+            </button>
+        </form>
+    </div>
+
+    <!-- Advanced Filters -->
+    <div class="px-3 sm:px-6 py-4 border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900">
+        <form method="GET" id="filter-form" class="flex flex-wrap gap-3 sm:gap-4 items-end">
+            <input type="hidden" name="search" value="{{ search }}">
+            <input type="hidden" name="status" value="{{ status_filter }}">
+
+            <!-- Bulk Actions -->
+            <div class="flex items-center gap-2 w-full sm:w-auto">
+                <select name="bulk_action" id="bulk_action"
+                    class="flex-1 sm:flex-none px-3 sm:px-4 py-2 sm:py-2.5 bg-white dark:bg-black border border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white text-xs sm:text-sm focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-theme">
+                    <option value="">Bulk actions</option>
+                    <option value="delete">Delete</option>
+                    <option value="publish">Publish</option>
+                    <option value="draft">Move to Draft</option>
+                    <option value="private">Move to Private</option>
+                </select>
+                <button type="button" onclick="applyBulkAction()"
+                    class="px-3 sm:px-4 py-2 sm:py-2.5 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg transition-colors text-xs sm:text-sm whitespace-nowrap">
+                    Apply
+                </button>
+            </div>
+
+            <!-- Category Filter -->
+            <div class="w-full sm:w-auto sm:min-w-[150px]">
+                <select name="category" id="category" onchange="applyFilters()"
+                    class="w-full sm:w-auto px-3 sm:px-4 py-2 sm:py-2.5 bg-white dark:bg-black border border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white text-xs sm:text-sm focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-theme">
+                    <option value="">Select a category</option>
+                    {% for category in categories %}
+                    <option value="{{ category.id }}" {% if category_filter|string==category.id|string %}selected{%
+                        endif %}>{{ category.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Product Type Filter -->
+            <div class="w-full sm:w-auto sm:min-w-[150px]">
+                <select name="product_type" id="product_type" onchange="applyFilters()"
+                    class="w-full sm:w-auto px-3 sm:px-4 py-2 sm:py-2.5 bg-white dark:bg-black border border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white text-xs sm:text-sm focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-theme">
+                    <option value="">Filter by product type</option>
+                    <option value="simple" {% if product_type_filter=='simple' %}selected{% endif %}>Simple product
+                    </option>
+                    <option value="variable" {% if product_type_filter=='variable' %}selected{% endif %}>Variable
+                        product</option>
+                    <option value="external" {% if product_type_filter=='external' %}selected{% endif %}>
+                        External/Affiliate</option>
+                </select>
+            </div>
+
+            <!-- Stock Status Filter -->
+            <div class="w-full sm:w-auto sm:min-w-[150px]">
+                <select name="stock_status" id="stock_status" onchange="applyFilters()"
+                    class="w-full sm:w-auto px-3 sm:px-4 py-2 sm:py-2.5 bg-white dark:bg-black border border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white text-xs sm:text-sm focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-theme">
+                    <option value="">Filter by stock status</option>
+                    <option value="in_stock" {% if stock_status_filter=='in_stock' %}selected{% endif %}>In Stock
+                    </option>
+                    <option value="out_of_stock" {% if stock_status_filter=='out_of_stock' %}selected{% endif %}>Out of
+                        Stock</option>
+                    <option value="backorder" {% if stock_status_filter=='backorder' %}selected{% endif %}>On Backorder
+                    </option>
+                </select>
+            </div>
+
+            <!-- Featured Filter -->
+            <div class="w-full sm:w-auto sm:min-w-[120px]">
+                <select name="featured" id="featured" onchange="applyFilters()"
+                    class="w-full sm:w-auto px-3 sm:px-4 py-2 sm:py-2.5 bg-white dark:bg-black border border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white text-xs sm:text-sm focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-theme">
+                    <option value="">Featured</option>
+                    <option value="yes" {% if featured_filter=='yes' %}selected{% endif %}>Featured Only</option>
+                    <option value="no" {% if featured_filter=='no' %}selected{% endif %}>Not Featured</option>
+                </select>
+            </div>
+
+            <!-- On Sale Filter -->
+            <div class="w-full sm:w-auto sm:min-w-[120px]">
+                <select name="on_sale" id="on_sale" onchange="applyFilters()"
+                    class="w-full sm:w-auto px-3 sm:px-4 py-2 sm:py-2.5 bg-white dark:bg-black border border-gray-300 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white text-xs sm:text-sm focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-theme">
+                    <option value="">On Sale</option>
+                    <option value="yes" {% if on_sale_filter=='yes' %}selected{% endif %}>On Sale Only</option>
+                    <option value="no" {% if on_sale_filter=='no' %}selected{% endif %}>Not On Sale</option>
+                </select>
+            </div>
+
+            <!-- Filter Button -->
+            <div class="w-full sm:w-auto">
+                <button type="submit"
+                    class="w-full sm:w-auto px-4 py-2 sm:py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-xs sm:text-sm font-medium whitespace-nowrap">
+                    Filter
+                </button>
+            </div>
+
+            <!-- Clear Filters -->
+            {% if category_filter or product_type_filter or stock_status_filter or featured_filter or on_sale_filter %}
+            <div class="w-full sm:w-auto">
+                <a href="{{ url_for('products.list', status=status_filter, search=search) }}"
+                    class="w-full sm:w-auto block text-center px-4 py-2 sm:py-2.5 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg transition-colors text-xs sm:text-sm whitespace-nowrap">
+                    Clear Filters
+                </a>
+            </div>
+            {% endif %}
+        </form>
+    </div>
+
+    <!-- Products Table -->
+    {% if products_with_prices %}
+    <div class="overflow-x-auto px-3 sm:px-6 py-4">
+        <div class="inline-block min-w-full align-middle">
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
+                <thead class="bg-gray-50 dark:bg-gray-800">
+                    <tr>
+                        <th
+                            class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                            <input type="checkbox" id="select-all" onchange="toggleAllProducts(this)"
+                                class="w-4 h-4 rounded border-gray-300 dark:border-gray-700 bg-white dark:bg-black text-gold focus:ring-gold">
+                        </th>
+                        <th
+                            class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                            Image</th>
+                        <th
+                            class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider min-w-[200px]">
+                            Title</th>
+                        <th
+                            class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                            SKU</th>
+                        <th
+                            class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                            Price</th>
+                        <th
+                            class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                            Stock</th>
+                        <th
+                            class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                            Status</th>
+                        <th
+                            class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                            Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200 dark:divide-gray-800 bg-white dark:bg-gray-900">
+                    {% for item in products_with_prices %}
+                    {% include 'products/partials/product_row.html' %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    {% if pagination.pages > 1 %}
+    <div
+        class="px-3 sm:px-6 py-4 border-t border-gray-200 dark:border-gray-800 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-0">
+        <div class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 text-center sm:text-left">
+            Showing {{ (pagination.page - 1) * pagination.per_page + 1 }} to {{ pagination.page * pagination.per_page if
+            pagination.page * pagination.per_page <= pagination.total else pagination.total }} of {{ pagination.total }}
+                items </div>
+                <div class="flex items-center gap-1 sm:gap-2">
+                    {% if pagination.has_prev %}
+                    <a href="{{ url_for('products.list', page=1, search=search, status=status_filter, category=category_filter, product_type=product_type_filter, stock_status=stock_status_filter, featured=featured_filter, on_sale=on_sale_filter) }}"
+                        class="px-2 sm:px-3 py-1.5 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg transition-colors text-xs sm:text-sm">««</a>
+                    <a href="{{ url_for('products.list', page=pagination.prev_num, search=search, status=status_filter, category=category_filter, product_type=product_type_filter, stock_status=stock_status_filter, featured=featured_filter, on_sale=on_sale_filter) }}"
+                        class="px-2 sm:px-3 py-1.5 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg transition-colors text-xs sm:text-sm">«</a>
+                    {% else %}
+                    <span
+                        class="px-2 sm:px-3 py-1.5 bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-600 rounded-lg text-xs sm:text-sm cursor-not-allowed">««</span>
+                    <span
+                        class="px-2 sm:px-3 py-1.5 bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-600 rounded-lg text-xs sm:text-sm cursor-not-allowed">«</span>
+                    {% endif %}
+
+                    <span
+                        class="px-2 sm:px-3 py-1.5 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-xs sm:text-sm font-medium whitespace-nowrap">
+                        {{ pagination.page }} / {{ pagination.pages }}
+                    </span>
+
+                    {% if pagination.has_next %}
+                    <a href="{{ url_for('products.list', page=pagination.next_num, search=search, status=status_filter, category=category_filter, product_type=product_type_filter, stock_status=stock_status_filter, featured=featured_filter, on_sale=on_sale_filter) }}"
+                        class="px-2 sm:px-3 py-1.5 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg transition-colors text-xs sm:text-sm">»</a>
+                    <a href="{{ url_for('products.list', page=pagination.pages, search=search, status=status_filter, category=category_filter, product_type=product_type_filter, stock_status=stock_status_filter, featured=featured_filter, on_sale=on_sale_filter) }}"
+                        class="px-2 sm:px-3 py-1.5 bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg transition-colors text-xs sm:text-sm">»»</a>
+                    {% else %}
+                    <span
+                        class="px-2 sm:px-3 py-1.5 bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-600 rounded-lg text-xs sm:text-sm cursor-not-allowed">»</span>
+                    <span
+                        class="px-2 sm:px-3 py-1.5 bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-600 rounded-lg text-xs sm:text-sm cursor-not-allowed">»»</span>
+                    {% endif %}
+                </div>
+        </div>
+        {% endif %}
+        {% else %}
+        <div class="p-12 text-center">
+            <p class="text-gray-600 dark:text-gray-400 mb-4">No products found.</p>
+            <a href="{{ url_for('products.create') }}"
+                class="inline-block px-4 py-2 bg-pink hover:bg-pink-dark text-white rounded-lg transition-colors text-sm">Create
+                your first product</a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Quick Edit Modal -->
+    <div id="quickEditModal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title"
+        role="dialog" aria-modal="true">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <!-- Background overlay -->
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"
+                onclick="closeQuickEdit()"></div>
+
+            <!-- Modal panel -->
+            <div
+                class="inline-block align-bottom bg-white dark:bg-gray-900 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full border border-gray-200 dark:border-gray-700">
+                <div class="bg-white dark:bg-gray-900 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <div class="w-full">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-white mb-4"
+                                id="modal-title">
+                                Quick Edit Product
+                            </h3>
+                            <form id="quickEditForm" class="space-y-4">
+                                <input type="hidden" id="qe_id" name="id">
+
+                                <!-- Title & Slug -->
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label for="qe_title"
+                                            class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Title</label>
+                                        <input type="text" id="qe_title" name="title"
+                                            class="w-full px-3 py-2 bg-white dark:bg-black border border-gray-300 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-gold focus:border-gold dark:text-white">
+                                    </div>
+                                    <div>
+                                        <label for="qe_slug"
+                                            class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Slug</label>
+                                        <input type="text" id="qe_slug" name="slug"
+                                            class="w-full px-3 py-2 bg-white dark:bg-black border border-gray-300 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-gold focus:border-gold dark:text-white">
+                                    </div>
+                                </div>
+
+                                <!-- SKU & Status -->
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label for="qe_sku"
+                                            class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">SKU</label>
+                                        <input type="text" id="qe_sku" name="sku"
+                                            class="w-full px-3 py-2 bg-white dark:bg-black border border-gray-300 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-gold focus:border-gold dark:text-white">
+                                    </div>
+                                    <div>
+                                        <label for="qe_status"
+                                            class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
+                                        <select id="qe_status" name="status"
+                                            class="w-full px-3 py-2 bg-white dark:bg-black border border-gray-300 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-gold focus:border-gold dark:text-white">
+                                            <option value="published">Published</option>
+                                            <option value="draft">Draft</option>
+                                            <option value="private">Private</option>
+                                            <option value="coming_soon">Coming Soon</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- Categories -->
+                                <div>
+                                    <label for="qe_categories"
+                                        class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Categories</label>
+                                    <select id="qe_categories" name="categories" multiple
+                                        class="w-full px-3 py-2 bg-white dark:bg-black border border-gray-300 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-gold focus:border-gold dark:text-white h-24">
+                                        {% for category in categories %}
+                                        <option value="{{ category.id }}">{{ category.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <p class="text-xs text-gray-500 mt-1">Hold Ctrl/Cmd to select multiple</p>
+                                </div>
+
+                                <!-- Prices -->
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label for="qe_regular_price"
+                                            class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Price</label>
+                                        <input type="number" step="0.01" id="qe_regular_price" name="regular_price"
+                                            class="w-full px-3 py-2 bg-white dark:bg-black border border-gray-300 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-gold focus:border-gold dark:text-white">
+                                    </div>
+                                    <div>
+                                        <label for="qe_sale_price"
+                                            class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Sale
+                                            Price</label>
+                                        <input type="number" step="0.01" id="qe_sale_price" name="sale_price"
+                                            class="w-full px-3 py-2 bg-white dark:bg-black border border-gray-300 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-gold focus:border-gold dark:text-white">
+                                    </div>
+                                </div>
+
+                                <!-- Stock -->
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label for="qe_stock_quantity"
+                                            class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Stock
+                                            Quantity</label>
+                                        <input type="number" id="qe_stock_quantity" name="stock_quantity"
+                                            class="w-full px-3 py-2 bg-white dark:bg-black border border-gray-300 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-gold focus:border-gold dark:text-white">
+                                    </div>
+                                    <div class="flex items-center pt-5">
+                                        <input type="checkbox" id="qe_manage_stock" name="manage_stock"
+                                            class="w-4 h-4 rounded border-gray-300 dark:border-gray-700 bg-white dark:bg-black text-gold focus:ring-gold">
+                                        <label for="qe_manage_stock"
+                                            class="ml-2 text-sm text-gray-700 dark:text-gray-300">Manage Stock</label>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 dark:bg-gray-800 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button type="button" onclick="saveQuickEdit()"
+                        class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-gold text-base font-medium text-white hover:bg-gold-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gold sm:ml-3 sm:w-auto sm:text-sm">
+                        Save Changes
+                    </button>
+                    <button type="button" onclick="closeQuickEdit()"
+                        class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-gray-700 shadow-sm px-4 py-2 bg-white dark:bg-gray-900 text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Quick Edit Functions
+        function openQuickEdit(data) {
+            document.getElementById('qe_id').value = data.id;
+            document.getElementById('qe_title').value = data.title;
+            document.getElementById('qe_slug').value = data.slug || '';
+            document.getElementById('qe_status').value = data.status;
+            document.getElementById('qe_sku').value = data.sku || '';
+            document.getElementById('qe_regular_price').value = data.regular_price;
+            document.getElementById('qe_sale_price').value = data.sale_price || '';
+            document.getElementById('qe_stock_quantity').value = data.stock_quantity || 0;
+            document.getElementById('qe_manage_stock').checked = data.manage_stock;
+
+            // Toggle stock quantity input based on manage stock
+            const stockInput = document.getElementById('qe_stock_quantity');
+            stockInput.disabled = !data.manage_stock;
+            if (!data.manage_stock) stockInput.classList.add('opacity-50', 'cursor-not-allowed');
+            else stockInput.classList.remove('opacity-50', 'cursor-not-allowed');
+
+            // Add event listener for checkbox if not already there (simple inline is easier)
+            document.getElementById('qe_manage_stock').onchange = function () {
+                const stockInput = document.getElementById('qe_stock_quantity');
+                stockInput.disabled = !this.checked;
+                if (!this.checked) stockInput.classList.add('opacity-50', 'cursor-not-allowed');
+                else stockInput.classList.remove('opacity-50', 'cursor-not-allowed');
+            };
+
+            // Set categories
+            const select = document.getElementById('qe_categories');
+            for (let i = 0; i < select.options.length; i++) {
+                select.options[i].selected = data.categories.includes(parseInt(select.options[i].value));
+            }
+
+            document.getElementById('quickEditModal').classList.remove('hidden');
+        }
+
+        function closeQuickEdit() {
+            document.getElementById('quickEditModal').classList.add('hidden');
+        }
+
+        async function saveQuickEdit() {
+            const id = document.getElementById('qe_id').value;
+            const saveBtn = document.querySelector('#quickEditModal button[onclick="saveQuickEdit()"]');
+            const originalText = saveBtn.innerHTML;
+
+            try {
+                saveBtn.disabled = true;
+                saveBtn.innerHTML = 'Saving...';
+
+                // Collect form data
+                const title = document.getElementById('qe_title').value;
+                const slug = document.getElementById('qe_slug').value;
+                const status = document.getElementById('qe_status').value;
+                const sku = document.getElementById('qe_sku').value;
+                const regular_price = document.getElementById('qe_regular_price').value;
+                const sale_price = document.getElementById('qe_sale_price').value;
+                const stock_quantity = document.getElementById('qe_stock_quantity').value;
+                const manage_stock = document.getElementById('qe_manage_stock').checked;
+                const categorySelect = document.getElementById('qe_categories');
+                const categories = Array.from(categorySelect.selectedOptions).map(option => parseInt(option.value));
+
+                const response = await fetch(`/admin/products/quick-edit/${id}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        title,
+                        slug,
+                        status,
+                        sku,
+                        regular_price,
+                        sale_price,
+                        stock_quantity,
+                        manage_stock,
+                        categories
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Updated: Replace the entire row with the server-rendered HTML
+                    const currentRow = document.getElementById(`product-row-${id}`);
+                    if (currentRow) {
+                        currentRow.outerHTML = result.row_html;
+                    } else {
+                        // Fallback if needed, though id should exist now
+                        location.reload();
+                        return;
+                    }
+
+                    closeQuickEdit();
+                    // Optional: Show success toast
+                } else {
+                    alert(result.message || 'Error updating product');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error saving changes: ' + error.message);
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = originalText;
+            }
+        }
+
+        function applyFilters() {
+            document.getElementById('filter-form').submit();
+        }
+
+        function toggleAllProducts(checkbox) {
+            const checkboxes = document.querySelectorAll('.product-checkbox');
+            checkboxes.forEach(cb => cb.checked = checkbox.checked);
+        }
+
+
+        function applyBulkAction() {
+            const action = document.getElementById('bulk_action').value;
+            if (!action) {
+                alert('Please select a bulk action');
+                return;
+            }
+
+            const selectedProducts = Array.from(document.querySelectorAll('.product-checkbox:checked')).map(cb => cb.value);
+            if (selectedProducts.length === 0) {
+                alert('Please select at least one product');
+                return;
+            }
+
+            if (action === 'delete') {
+                if (!confirm(`Are you sure you want to delete ${selectedProducts.length} product(s)?`)) {
+                    return;
+                }
+            }
+
+            // Create form and submit
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '{{ url_for("products.bulk_action") }}';
+
+            const actionInput = document.createElement('input');
+            actionInput.type = 'hidden';
+            actionInput.name = 'action';
+            actionInput.value = action;
+            form.appendChild(actionInput);
+
+            selectedProducts.forEach(id => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'product_ids';
+                input.value = id;
+                form.appendChild(input);
+            });
+
+            document.body.appendChild(form);
+            form.submit();
+        }
+
+        async function toggleFeatured(productId, button) {
+            try {
+                // Disable button during request
+                button.disabled = true;
+                button.style.opacity = '0.6';
+
+                const response = await fetch(`/admin/products/${productId}/toggle-featured`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'same-origin'
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Update button appearance
+                    if (data.featured) {
+                        button.classList.remove('bg-gray-200', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
+                        button.classList.add('bg-gold', 'text-white');
+                        button.innerHTML = '★ Featured';
+                        button.title = 'Remove from featured';
+
+                        // Update featured badge in status column if it exists
+                        const row = button.closest('tr');
+                        const statusCell = row.querySelector('td:nth-child(7)');
+                        if (statusCell && !statusCell.querySelector('.featured-badge')) {
+                            const badge = document.createElement('span');
+                            badge.className = 'ml-2 px-2 py-1 text-xs rounded-full bg-gold/20 dark:bg-gold/20 text-gold featured-badge';
+                            badge.textContent = 'Featured';
+                            statusCell.appendChild(badge);
+                        }
+                    } else {
+                        button.classList.remove('bg-gold', 'text-white');
+                        button.classList.add('bg-gray-200', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
+                        button.innerHTML = '☆ Feature';
+                        button.title = 'Mark as featured';
+
+                        // Remove featured badge if it exists
+                        const row = button.closest('tr');
+                        const statusCell = row.querySelector('td:nth-child(7)');
+                        if (statusCell) {
+                            const badge = statusCell.querySelector('.featured-badge');
+                            if (badge) {
+                                badge.remove();
+                            }
+                        }
+                    }
+                } else {
+                    alert(data.message || 'Error updating featured status');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error updating featured status. Please try again.');
+            } finally {
+                // Re-enable button
+                button.disabled = false;
+                button.style.opacity = '1';
+            }
+        }
+    </script>
+    {% endblock %}

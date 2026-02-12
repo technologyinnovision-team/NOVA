@@ -1,0 +1,61 @@
+<div class="flex justify-between items-center mb-4">
+    <h4 class="text-sm font-medium text-gray-900 dark:text-white">Variations</h4>
+    <div class="flex gap-2">
+        {% if product %}
+        <button type="button" onclick="generateVariations({{ product.id }})"
+            class="px-3 py-1.5 bg-indigo-600 text-white rounded-md text-sm hover:bg-indigo-700 transition-colors">
+            Generate Variations
+        </button>
+        {% else %}
+        <button type="button" onclick="alert('Please save the product with attributes first.')"
+            class="px-3 py-1.5 bg-indigo-400 text-white rounded-md text-sm cursor-not-allowed">
+            Generate Variations
+        </button>
+        {% endif %}
+        <button type="button" onclick="addVariationRow()"
+            class="px-3 py-1.5 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-md text-sm hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
+            Add Manually
+        </button>
+    </div>
+</div>
+
+<div id="variations-container" class="space-y-4">
+    {% if product and product.variations %}
+    {% for var in product.variations %}
+    <div
+        class="variation-row border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-900 relative">
+        <button type="button" onclick="this.closest('.variation-row').remove()"
+            class="absolute top-2 right-2 text-gray-400 hover:text-red-500">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+        </button>
+        <div class="grid grid-cols-2 md:grid-cols-6 gap-4">
+            <div class="col-span-2 md:col-span-2">
+                <label class="block text-xs font-medium text-gray-500 mb-1">Attr Combination</label>
+                <input type="text" name="variation_attributes[]"
+                    value="{% for key, val in var.attribute_terms.items() %}{{ key }}: {{ val }}{% if not loop.last %} | {% endif %}{% endfor %}"
+                    class="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md text-sm"
+                    readonly>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-500 mb-1">SKU</label>
+                <input type="text" name="variation_sku[]" value="{{ var.sku or '' }}"
+                    class="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md text-sm">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-500 mb-1">Price</label>
+                <input type="number" step="0.01" name="variation_regular_price[]" value="{{ var.regular_price or '' }}"
+                    class="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md text-sm">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-500 mb-1">Stock</label>
+                <input type="number" name="variation_stock[]"
+                    value="{{ var.stock_quantity if var.manage_stock else '' }}"
+                    class="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md text-sm">
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+    {% endif %}
+</div>
